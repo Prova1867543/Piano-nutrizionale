@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Piano nutrizionale personalizzato — app privata">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2d5a3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Piano">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Piano Nutrizionale</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #faf9f6;
+    --card: #ffffff;
+    --primary: #2d5a3d;
+    --primary-dark: #1e3d29;
+    --accent: #d4a556;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --success: #16a34a;
+    --warning: #ea580c;
+    --danger: #dc2626;
+    --info: #0369a1;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh;
+  }
+  header {
+    background: var(--primary); color: #fff; padding: 1rem 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100;
+  }
+  header h1 { font-size: 1.25rem; font-weight: 600; }
+  header .subtitle { font-size: 0.8rem; opacity: 0.8; margin-top: 2px; }
+  .kpi-mini { text-align: right; font-size: 0.8rem; opacity: 0.9; }
+  .kpi-mini strong { font-size: 1.1rem; display: block; }
+  nav {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; overflow-x: auto; padding: 0 1rem; position: sticky; top: 64px; z-index: 90;
+  }
+  nav button {
+    background: none; border: none; padding: 0.9rem 1rem; font-size: 0.9rem;
+    color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent;
+    white-space: nowrap; font-family: inherit; font-weight: 500; transition: all 0.15s;
+  }
+  nav button:hover { color: var(--primary); }
+  nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+  main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+  section { display: none; }
+  section.active { display: block; }
+  .section-title { font-size: 1.3rem; margin-bottom: 1rem; color: var(--primary-dark); }
+  .section-subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+  .card {
+    background: var(--card); border-radius: 10px; padding: 1.25rem;
+    box-shadow: var(--shadow); margin-bottom: 1rem; border: 1px solid var(--border);
+  }
+  .card h3 { font-size: 1rem; margin-bottom: 0.75rem; color: var(--primary-dark); }
+  .grid { display: grid; gap: 1rem; }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .kpi { background: var(--card); padding: 1.1rem; border-radius: 10px; border: 1px solid var(--border); }
+  .kpi .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi .value { font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); margin-top: 4px; }
+  .kpi .sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .kpi .delta { font-size: 0.8rem; font-weight: 600; margin-top: 4px; }
+  .kpi .delta.pos { color: var(--success); }
+  .kpi .delta.neg { color: var(--danger); }
+  button.btn {
+    background: var(--primary); color: #fff; border: none; padding: 0.6rem 1rem;
+    border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-family: inherit; font-weight: 500;
+    transition: background 0.15s;
+  }
+  button.btn:hover { background: var(--primary-dark); }
+  button.btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+  button.btn-ghost:hover { background: var(--primary); color: #fff; }
+  button.btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
+  button.btn-danger { background: var(--danger); }
+  input, select {
+    padding: 0.5rem 0.7rem; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.9rem; font-family: inherit; background: #fff; width: 100%;
+  }
+  input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: transparent; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+  .form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
+  .form-row > div { flex: 1; min-width: 140px; }
+  .alert {
+    padding: 1rem 1.2rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid;
+  }
+  .alert-danger { background: #fef2f2; border-color: var(--danger); color: #7f1d1d; }
+  .alert-warning { background: #fff7ed; border-color: var(--warning); color: #7c2d12; }
+  .alert-info { background: #eff6ff; border-color: var(--info); color: #1e3a8a; }
+  .alert h4 { margin-bottom: 0.3rem; font-size: 0.95rem; }
+  .alert p { font-size: 0.88rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+  th, td { padding: 0.6rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  th { background: #f9fafb; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* Piano settimanale */
+  .week-grid { display: grid; grid-template-columns: 140px repeat(7, 1fr); gap: 4px; min-width: 900px; }
+  .week-wrapper { overflow-x: auto; }
+  .week-header { background: var(--primary); color: #fff; padding: 0.6rem; font-size: 0.8rem; font-weight: 600; text-align: center; border-radius: 6px; }
+  .week-header.weekend { background: var(--accent); color: #1f2937; }
+  .week-cat { font-weight: 600; padding: 0.8rem 0.6rem; color: var(--primary-dark); font-size: 0.85rem; background: #f4f4ef; border-radius: 6px; display: flex; align-items: center; }
+  .meal-cell {
+    background: var(--card); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border);
+    cursor: pointer; font-size: 0.8rem; min-height: 72px; display: flex; flex-direction: column;
+    justify-content: space-between; transition: all 0.12s;
+  }
+  .meal-cell:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .meal-cell .meal-name { font-weight: 500; color: var(--text); }
+  .meal-cell .meal-kcal { color: var(--muted); font-size: 0.72rem; margin-top: 4px; }
+  .meal-cell.done { background: #ecfdf5; border-color: var(--success); }
+  .meal-cell.skipped { background: #fef2f2; border-color: var(--danger); opacity: 0.7; }
+  .meal-cell.swapped { background: #fff7ed; border-color: var(--warning); }
+  .meal-badge { display: inline-block; font-size: 0.65rem; padding: 1px 5px; border-radius: 3px; margin-top: 3px; font-weight: 600; text-transform: uppercase; }
+  .meal-badge.done { background: var(--success); color: #fff; }
+  .meal-badge.skipped { background: var(--danger); color: #fff; }
+  .meal-badge.swapped { background: var(--warning); color: #fff; }
+
+  /* Ricette */
+  .recipe-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .filter-btn {
+    background: var(--card); border: 1px solid var(--border); padding: 0.4rem 0.9rem; border-radius: 20px;
+    font-size: 0.85rem; cursor: pointer; font-family: inherit; transition: all 0.12s;
+  }
+  .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .recipe-card {
+    background: var(--card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .recipe-card:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+  .recipe-card h4 { font-size: 0.95rem; margin-bottom: 6px; color: var(--primary-dark); }
+  .recipe-meta { display: flex; gap: 8px; font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
+  .recipe-meta span { background: #f4f4ef; padding: 2px 6px; border-radius: 4px; }
+  .macros { display: flex; gap: 6px; margin-top: 8px; font-size: 0.72rem; }
+  .macro { flex: 1; text-align: center; padding: 4px; background: #f9fafb; border-radius: 4px; }
+  .macro .m-label { font-weight: 600; color: var(--muted); }
+  .macro .m-val { font-weight: 700; color: var(--primary-dark); }
+
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--card); border-radius: 12px; padding: 1.5rem; max-width: 600px; width: 100%;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal h3 { margin-bottom: 0.5rem; color: var(--primary-dark); }
+  .modal .close-btn { float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); padding: 0; line-height: 1; }
+  .ingredient-list { margin: 1rem 0; }
+  .ingredient-list li { padding: 4px 0; font-size: 0.9rem; }
+  .modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+
+  /* Tracking */
+  .progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; transition: width 0.3s; }
+  .progress-fill.ok { background: var(--success); }
+  .progress-fill.over { background: var(--danger); }
+  .progress-fill.under { background: var(--warning); }
+
+  /* Shopping */
+  .shopping-group { background: var(--card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 0.75rem; }
+  .shopping-group h4 { font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--primary-dark); text-transform: uppercase; letter-spacing: 0.3px; }
+  .shopping-item { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #f3f4f6; gap: 10px; font-size: 0.9rem; }
+  .shopping-item:last-child { border-bottom: none; }
+  .shopping-item input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; }
+  .shopping-item.checked { color: var(--muted); text-decoration: line-through; }
+  .qty { color: var(--muted); font-size: 0.85rem; }
+
+  /* Progressi */
+  .weight-entry { display: flex; gap: 8px; padding: 8px; background: #f9fafb; border-radius: 6px; margin-bottom: 4px; font-size: 0.88rem; align-items: center; }
+  .weight-entry .del { color: var(--danger); cursor: pointer; margin-left: auto; background: none; border: none; padding: 2px 6px; }
+
+  /* Charts compact + expand */
+  .chart-wrap { position: relative; height: 170px; }
+  .chart-wrap canvas { max-height: 170px !important; }
+  .chart-wrap.big { height: 240px; }
+  .chart-wrap.big canvas { max-height: 240px !important; }
+  .chart-expand-btn {
+    position: absolute; top: 6px; right: 6px; background: rgba(255,255,255,0.9);
+    border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
+    font-size: 0.75rem; cursor: pointer; color: var(--primary-dark); z-index: 5;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08); font-family: inherit;
+  }
+  .chart-expand-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .chart-modal-wrap { position: relative; width: 100%; height: 70vh; min-height: 400px; }
+
+  /* Toast + Undo */
+  .toast-container {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 2000; display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none; max-width: calc(100% - 32px);
+  }
+  .toast {
+    background: var(--primary-dark); color: #fff; padding: 12px 16px;
+    border-radius: 10px; font-size: 0.88rem; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25); pointer-events: auto;
+    animation: toastIn 0.25s ease-out;
+    min-width: 260px; max-width: 420px;
+  }
+  @keyframes toastIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .toast-msg { flex: 1; }
+  .toast-undo {
+    background: var(--accent); color: #1f2937; border: none;
+    padding: 6px 12px; border-radius: 6px; font-weight: 700; cursor: pointer;
+    font-family: inherit; font-size: 0.82rem; white-space: nowrap;
+  }
+  .toast-undo:hover { background: #e8b86b; }
+  .toast-close {
+    background: none; border: none; color: #fff; cursor: pointer;
+    font-size: 1.1rem; padding: 0 4px; opacity: 0.7;
+  }
+  .toast-close:hover { opacity: 1; }
+
+  /* Floating undo FAB */
+  .fab-undo {
+    position: fixed; bottom: 20px; right: 20px; z-index: 900;
+    background: var(--primary-dark); color: #fff; border: none;
+    width: 56px; height: 56px; border-radius: 50%; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25); font-size: 1.4rem;
+    display: none; align-items: center; justify-content: center; font-family: inherit;
+  }
+  .fab-undo.show { display: flex; }
+  .fab-undo:hover { background: var(--primary); }
+  .fab-undo .badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #1f2937;
+    font-size: 0.7rem; font-weight: 700; border-radius: 10px; padding: 2px 6px; min-width: 18px;
+  }
+
+  /* Mobile views */
+  .mobile-day-selector { display: none; }
+  .mobile-meal-list { display: none; }
+  .week-desktop-only { display: block; }
+
+  /* Recipe links */
+  .recipe-links { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.5rem; }
+  .recipe-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 12px; background: #f4f4ef; border: 1px solid var(--border); border-radius: 20px;
+    text-decoration: none; color: var(--primary-dark); font-size: 0.82rem; transition: all 0.15s;
+  }
+  .recipe-link:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* Workout */
+  .workout-schedule { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .workout-day { background: #fafaf7; border-left: 4px solid; padding: 10px 8px; border-radius: 6px; text-align: center; }
+  .workout-day-name { font-weight: 600; font-size: 0.85rem; color: var(--primary-dark); }
+  .workout-day-type { font-size: 0.8rem; margin-top: 4px; color: var(--text); }
+  .workout-day-dur { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .workout-program { background: var(--card); }
+  .workout-section { margin-bottom: 1rem; }
+  .workout-section-title { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; font-weight: 600; }
+  .workout-exercise { background: #fafaf7; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; border-left: 3px solid var(--primary); }
+  .ex-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .ex-nome { font-weight: 600; color: var(--text); font-size: 0.92rem; }
+  .ex-setreps { background: var(--primary); color: #fff; padding: 2px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+  .ex-note { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+
+  @media (max-width: 700px) {
+    header { padding: 0.7rem 1rem; }
+    header h1 { font-size: 0.95rem; }
+    header .subtitle { font-size: 0.7rem; }
+    .kpi-mini { font-size: 0.65rem; }
+    .kpi-mini strong { font-size: 0.9rem; }
+    nav { top: 60px; padding: 0 0.5rem; }
+    nav button { padding: 0.75rem 0.7rem; font-size: 0.82rem; }
+    main { padding: 1rem 0.75rem; }
+    .section-title { font-size: 1.1rem; }
+    .section-subtitle { font-size: 0.82rem; }
+    .card { padding: 0.9rem; border-radius: 8px; }
+    .card h3 { font-size: 0.95rem; }
+    .kpi { padding: 0.8rem; }
+    .kpi .label { font-size: 0.68rem; }
+    .kpi .value { font-size: 1.15rem; }
+    .kpi .sub { font-size: 0.7rem; }
+    .form-row { flex-direction: column; gap: 0.5rem; }
+    .form-row > div { width: 100%; }
+    .form-row > button { width: 100%; }
+    button.btn { padding: 0.7rem 1rem; font-size: 0.9rem; }
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    table { font-size: 0.8rem; }
+    th, td { padding: 0.5rem 0.4rem; }
+    .modal { padding: 1.1rem; max-height: 94vh; }
+
+    /* Mobile: hide desktop grid, show mobile view */
+    .week-desktop-only { display: none; }
+    .mobile-day-selector {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+      margin-bottom: 1rem; position: sticky; top: 108px; z-index: 50;
+      background: var(--bg); padding: 6px 0;
+    }
+    .day-btn {
+      background: var(--card); border: 1px solid var(--border); padding: 10px 4px;
+      border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-family: inherit;
+      font-weight: 600; color: var(--muted); transition: all 0.15s; touch-action: manipulation;
+    }
+    .day-btn.weekend { color: var(--accent); }
+    .day-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .day-btn.active.weekend { background: var(--accent); color: #1f2937; border-color: var(--accent); }
+
+    .mobile-meal-list { display: block; }
+    .mobile-day-header {
+      background: var(--primary); color: #fff; padding: 12px 14px; border-radius: 10px 10px 0 0;
+      margin-bottom: 0;
+    }
+    .mobile-day-header.weekend { background: var(--accent); color: #1f2937; }
+    .mobile-day-title { font-size: 1.05rem; font-weight: 700; }
+    .mobile-day-stats { font-size: 0.78rem; opacity: 0.9; margin-top: 3px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .mobile-meal-card {
+      background: var(--card); border: 1px solid var(--border); border-top: none;
+      padding: 12px 14px; cursor: pointer; transition: background 0.15s;
+    }
+    .mobile-meal-card:last-child { border-radius: 0 0 10px 10px; }
+    .mobile-meal-card:active { background: #f9fafb; }
+    .mobile-meal-card.done { background: #ecfdf5; }
+    .mobile-meal-card.skipped { background: #fef2f2; opacity: 0.75; }
+    .mobile-meal-card.swapped { background: #fff7ed; }
+    .mobile-meal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .mobile-meal-icon { font-size: 1.1rem; }
+    .mobile-meal-time { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .mobile-meal-name { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+    .mobile-meal-macros { display: flex; gap: 12px; font-size: 0.78rem; color: var(--muted); }
+
+    /* Workout mobile */
+    .workout-schedule { grid-template-columns: repeat(2, 1fr); }
+    .ex-head { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .ex-setreps { align-self: flex-start; }
+
+    /* Modal full screen on mobile */
+    .modal-bg { padding: 0; align-items: flex-end; }
+    .modal { border-radius: 16px 16px 0 0; max-height: 92vh; width: 100%; }
+
+    /* Recipe cards */
+    .recipe-card { padding: 0.8rem; }
+    .recipe-card h4 { font-size: 0.88rem; }
+
+    /* Shopping */
+    .shopping-item { padding: 10px 0; font-size: 0.92rem; }
+    .shopping-item input[type=checkbox] { width: 22px; height: 22px; }
+
+    /* Charts compact on mobile */
+    .chart-wrap { height: 140px; }
+    .chart-wrap canvas { max-height: 140px !important; }
+    .chart-wrap.big { height: 180px; }
+    .chart-wrap.big canvas { max-height: 180px !important; }
+    .chart-modal-wrap { height: 75vh; min-height: 350px; }
+
+    /* FAB + toast mobile */
+    .fab-undo { bottom: 14px; right: 14px; width: 50px; height: 50px; font-size: 1.3rem; }
+    .toast { font-size: 0.82rem; padding: 10px 14px; min-width: 0; width: calc(100vw - 32px); }
+    .toast-container { bottom: 14px; }
+  }
+
+  @media (max-width: 380px) {
+    .day-btn { font-size: 0.72rem; padding: 8px 2px; }
+    .mobile-meal-macros { gap: 8px; font-size: 0.72rem; }
+    .workout-schedule { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Piano Nutrizionale — Sonia</h1>
+    <div class="subtitle">Target 64–65 kg entro luglio 2026 · Profilo cardioprotettivo</div>
+  </div>
+  <div class="kpi-mini">
+    <span id="header-days">— giorni al target</span>
+    <strong id="header-weight">— kg</strong>
+  </div>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+  <button class="tab-btn" data-tab="piano">Piano settimanale</button>
+  <button class="tab-btn" data-tab="ricette">Ricette</button>
+  <button class="tab-btn" data-tab="tracking">Tracking giornaliero</button>
+  <button class="tab-btn" data-tab="spesa">Lista spesa</button>
+  <button class="tab-btn" data-tab="allenamento">Allenamento</button>
+  <button class="tab-btn" data-tab="progressi">Progressi</button>
+  <button class="tab-btn" data-tab="clinico">Referto clinico</button>
+</nav>
+
+<main>
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="active">
+    <h2 class="section-title">Dashboard</h2>
+
+    <div class="alert alert-danger">
+      <h4>⚠️ Priorità clinica: consulto MMG</h4>
+      <p>LDL 237 mg/dL (luglio 2025), ApoB 167 — profilo da inquadrare con medico curante entro 2–4 settimane. Il piano è cardioprotettivo ma non sostituisce l'eventuale terapia. Vedi sezione "Referto clinico" per dettagli.</p>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom: 1.5rem;">
+      <div class="kpi">
+        <div class="label">Peso attuale</div>
+        <div class="value" id="kpi-weight">— kg</div>
+        <div class="delta" id="kpi-delta">—</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Peso target</div>
+        <div class="value">64 kg</div>
+        <div class="sub">Range 64–65</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Kg da perdere</div>
+        <div class="value" id="kpi-togo">—</div>
+        <div class="sub">Rispetto al peso attuale</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Giorni rimasti</div>
+        <div class="value" id="kpi-days">—</div>
+        <div class="sub">Al target (31 luglio 2026)</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Trend peso</h3>
+        <div class="chart-wrap">
+          <button class="chart-expand-btn" onclick="expandChart('weight')" aria-label="Ingrandisci">⛶ Ingrandisci</button>
+          <canvas id="chart-weight"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Kcal — ultimi 7 giorni</h3>
+        <div class="chart-wrap">
+          <button class="chart-expand-btn" onclick="expandChart('kcal')" aria-label="Ingrandisci">⛶ Ingrandisci</button>
+          <canvas id="chart-kcal"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 1rem;">
+      <div class="card">
+        <h3>Target giornalieri (giorno feriale)</h3>
+        <table>
+          <tr><td><strong>Calorie</strong></td><td>1.500–1.550 kcal</td></tr>
+          <tr><td><strong>Proteine</strong></td><td>130 g (2,0 g/kg peso target)</td></tr>
+          <tr><td><strong>Grassi</strong></td><td>55 g (di cui saturi &lt;12 g)</td></tr>
+          <tr><td><strong>Carboidrati</strong></td><td>135 g</td></tr>
+          <tr><td><strong>Fibre</strong></td><td>≥25 g (di cui ≥10 solubili)</td></tr>
+        </table>
+        <p class="section-subtitle" style="margin-top: 0.8rem; margin-bottom: 0;">Weekend: budget 1.700–1.800 kcal (pizza e pasta inclusi). Media settimanale: 1.600.</p>
+      </div>
+      <div class="card">
+        <h3>Regole operative</h3>
+        <ul style="padding-left: 1.2rem; font-size: 0.88rem;">
+          <li style="margin-bottom: 6px;">Spuntino pomeridiano 16:30 <strong>blindato</strong> (chiude il buco tra pranzo e cena)</li>
+          <li style="margin-bottom: 6px;">1 pizza/settimana budgeted (sabato O domenica)</li>
+          <li style="margin-bottom: 6px;">Cioccolato fondente ≥85%: max 15 g/die, in quadretti pre-separati</li>
+          <li style="margin-bottom: 6px;">Frutta secca: porzioni pre-pesate da 20 g</li>
+          <li style="margin-bottom: 6px;">Pesce azzurro 2–3×/settimana</li>
+          <li style="margin-bottom: 6px;">Legumi ≥3×/settimana (fibre solubili, LDL)</li>
+          <li>Fase luteale: +150 kcal, cioccolato fondente previsto</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIANO -->
+  <section id="piano">
+    <h2 class="section-title">Piano settimanale</h2>
+    <p class="section-subtitle">Clicca su un pasto per vedere la ricetta, segnarlo come fatto/saltato o sostituirlo.</p>
+
+    <div class="form-row">
+      <button class="btn btn-ghost btn-sm" id="btn-randomize">🎲 Randomizza settimana</button>
+      <button class="btn btn-ghost btn-sm" id="btn-reset-week">Reset settimana originale</button>
+      <button class="btn btn-ghost btn-sm" id="btn-regen-shopping">Rigenera lista spesa</button>
+    </div>
+
+    <!-- Mobile day selector (visible solo su mobile) -->
+    <div class="mobile-day-selector" id="mobile-day-selector"></div>
+
+    <!-- Mobile meal list (visible solo su mobile) -->
+    <div class="mobile-meal-list" id="mobile-meal-list"></div>
+
+    <!-- Desktop grid view -->
+    <div class="card week-desktop-only" style="padding: 0.5rem;">
+      <div class="week-wrapper">
+        <div class="week-grid" id="week-grid"></div>
+      </div>
+    </div>
+
+    <div class="alert alert-info" style="margin-top: 1rem;">
+      <h4>Come funziona la riprogrammazione</h4>
+      <p>Quando segni un pasto come "saltato" o "sostituito", il sistema suggerisce alternative con macro compatibili dalla libreria ricette. La lista spesa si aggiorna automaticamente quando cambi il piano.</p>
+    </div>
+  </section>
+
+  <!-- ALLENAMENTO -->
+  <section id="allenamento">
+    <h2 class="section-title">Allenamento</h2>
+    <p class="section-subtitle">3 sessioni forza + cardio integrato. Preservazione massa magra + riduzione LDL (cardio Z2 riduce LDL 5–10%).</p>
+
+    <div class="card">
+      <h3>Settimana tipo</h3>
+      <div id="workout-week"></div>
+    </div>
+
+    <div class="grid grid-3" style="margin-bottom: 1rem;">
+      <div class="kpi">
+        <div class="label">Forza</div>
+        <div class="value">3×/sett</div>
+        <div class="sub">50–60 min a sessione</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Cardio Z2</div>
+        <div class="value">60–80 min</div>
+        <div class="sub">Totale settimanale, integrato</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Passi/die</div>
+        <div class="value">7–8.000</div>
+        <div class="sub">Mantenere base NEAT</div>
+      </div>
+    </div>
+
+    <div id="workout-programs"></div>
+
+    <div class="card">
+      <h3>Come usare Zona 2 (Z2)</h3>
+      <p style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem">Frequenza cardiaca target 55–65% FCmax. Per Sonia (48 anni): FCmax stimata ≈ 174 bpm → <strong>Z2 = 96–113 bpm</strong>.</p>
+      <p style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem">Regola empirica (senza cardiofrequenzimetro): <em>"riesco a parlare in frasi complete, ma non a cantare"</em>.</p>
+      <p style="font-size:0.9rem;color:#374151">Tapis roulant: 5,0–5,5 km/h con pendenza 3–5%. Camminata all'aperto in salita leggera. Cyclette resistenza media.</p>
+    </div>
+
+    <div class="card">
+      <h3>Progressione dei carichi</h3>
+      <table>
+        <tr><th>Settimane</th><th>Obiettivo</th></tr>
+        <tr><td>1–2</td><td>Consolidamento tecnica — pesi bassi, focus esecuzione pulita</td></tr>
+        <tr><td>3–4</td><td>+1 rep per serie quando completa tutte le serie al limite alto</td></tr>
+        <tr><td>5–6</td><td>+0,5–1 kg quando riesce a fare 12 rep in tutte le serie</td></tr>
+        <tr><td>7+</td><td>Ciclo: +1 rep per 2 settimane, poi +peso e reset reps</td></tr>
+      </table>
+      <p style="font-size:0.85rem;color:#6b7280;margin-top:0.5rem">RPE target: 7–8 su 10 (percepisce fatica, ma potrebbe fare 2–3 rep in più se costretta). Mai a cedimento nelle prime 2 serie.</p>
+    </div>
+
+    <div class="card">
+      <h3>Mobility serale (8–10 min, la sera)</h3>
+      <ul style="padding-left:1.2rem;font-size:0.9rem">
+        <li style="margin-bottom:6px">Stretching ischio-crurali (seduta, tocco punte): 2×30 sec</li>
+        <li style="margin-bottom:6px">Apertura anche (rana passiva): 2×45 sec</li>
+        <li style="margin-bottom:6px">Stretching pettorali al muro: 2×30 sec/lato</li>
+        <li style="margin-bottom:6px">Cat-cow (schiena gatto/cammello): 10 rip lente</li>
+        <li style="margin-bottom:6px">Torsione lombare supina: 2×30 sec/lato</li>
+        <li>Respirazione diaframmatica: 10 cicli profondi (utile per stress serale)</li>
+      </ul>
+    </div>
+
+    <div class="alert alert-warning">
+      <h4>Regole di sospensione</h4>
+      <p>Se stanchezza percepita &gt;8/10 o sonno &lt;5h: saltare forza → solo camminata leggera. Dolore articolare acuto: ridurre carico o sostituire esercizio. Ciclo mestruale giorni 1–2 con flusso pesante: riduzione volume 30–50%, no esercizi sotto carico assiale se malessere.</p>
+    </div>
+  </section>
+
+  <!-- RICETTE -->
+  <section id="ricette">
+    <h2 class="section-title">Libreria ricette</h2>
+    <p class="section-subtitle">Tutte le ricette del piano, più varianti. Ingredienti italiani, facili da reperire. Clicca per vedere dettaglio.</p>
+
+    <div class="recipe-filters" id="recipe-filters">
+      <button class="filter-btn active" data-filter="all">Tutte</button>
+      <button class="filter-btn" data-filter="colazione">Colazione</button>
+      <button class="filter-btn" data-filter="pranzo">Pranzo</button>
+      <button class="filter-btn" data-filter="spuntino">Spuntino</button>
+      <button class="filter-btn" data-filter="cena">Cena</button>
+      <button class="filter-btn" data-filter="weekend">Weekend</button>
+    </div>
+
+    <div class="grid grid-2" id="recipe-grid"></div>
+  </section>
+
+  <!-- TRACKING -->
+  <section id="tracking">
+    <h2 class="section-title">Tracking giornaliero</h2>
+    <p class="section-subtitle">Inserisci le kcal realmente consumate oggi e confronta con il target.</p>
+
+    <div class="card">
+      <h3 id="tracking-date-title">Oggi</h3>
+      <div class="form-row">
+        <div>
+          <label for="tracking-kcal">Kcal consumate</label>
+          <input type="number" id="tracking-kcal" placeholder="es. 1520" min="0" max="5000">
+        </div>
+        <div>
+          <label for="tracking-note">Nota (opzionale)</label>
+          <input type="text" id="tracking-note" placeholder="es. cena fuori, ciclo, ecc.">
+        </div>
+        <button class="btn" id="btn-save-kcal">Salva</button>
+      </div>
+      <div id="tracking-progress" style="margin-top: 1rem;"></div>
+    </div>
+
+    <div class="card">
+      <h3>Stato pasti di oggi</h3>
+      <div id="today-meals"></div>
+    </div>
+
+    <div class="card">
+      <h3>Ultimi 14 giorni</h3>
+      <div id="kcal-history"></div>
+    </div>
+  </section>
+
+  <!-- SPESA -->
+  <section id="spesa">
+    <h2 class="section-title">Lista della spesa</h2>
+    <p class="section-subtitle">Auto-generata dal piano settimanale corrente. Spunta man mano che acquisti.</p>
+    <div class="form-row">
+      <button class="btn" id="btn-clear-shopping">Azzera checklist</button>
+      <button class="btn btn-ghost" id="btn-regen-shopping-2">Rigenera da piano</button>
+    </div>
+    <div id="shopping-list"></div>
+  </section>
+
+  <!-- PROGRESSI -->
+  <section id="progressi">
+    <h2 class="section-title">Progressi</h2>
+    <p class="section-subtitle">Registra peso (settimanale, stesso giorno/orario) e misure (bisettimanale).</p>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Aggiungi pesata</h3>
+        <div class="form-row">
+          <div>
+            <label>Data</label>
+            <input type="date" id="w-date">
+          </div>
+          <div>
+            <label>Peso (kg)</label>
+            <input type="number" step="0.1" id="w-value" placeholder="68.5">
+          </div>
+          <button class="btn" id="btn-add-weight">Aggiungi</button>
+        </div>
+        <div id="weight-list" style="margin-top: 1rem;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Aggiungi misure</h3>
+        <div class="form-row">
+          <div>
+            <label>Data</label>
+            <input type="date" id="m-date">
+          </div>
+          <div>
+            <label>Vita (cm)</label>
+            <input type="number" step="0.5" id="m-waist" placeholder="87">
+          </div>
+          <div>
+            <label>Fianchi (cm)</label>
+            <input type="number" step="0.5" id="m-hip" placeholder="98">
+          </div>
+          <button class="btn" id="btn-add-measure">Aggiungi</button>
+        </div>
+        <div id="measure-list" style="margin-top: 1rem;"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;">
+      <h3>Curva del peso</h3>
+      <div class="chart-wrap big">
+        <button class="chart-expand-btn" onclick="expandChart('progress')" aria-label="Ingrandisci">⛶ Ingrandisci</button>
+        <canvas id="chart-progress"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;">
+      <h3>Export / Import dati</h3>
+      <p class="section-subtitle">I dati sono salvati in locale sul tuo browser. Usa export per backup.</p>
+      <div class="form-row">
+        <button class="btn btn-ghost" id="btn-export">Esporta JSON</button>
+        <button class="btn btn-ghost" id="btn-import">Importa JSON</button>
+        <button class="btn btn-danger btn-sm" id="btn-reset-all">Reset totale</button>
+        <input type="file" id="import-file" accept="application/json" style="display:none">
+      </div>
+    </div>
+  </section>
+
+  <!-- CLINICO -->
+  <section id="clinico">
+    <h2 class="section-title">Referto clinico &amp; baseline</h2>
+
+    <div class="alert alert-danger">
+      <h4>🚨 Red flag #1 — Dislipidemia severa non trattata</h4>
+      <p><strong>LDL 237 mg/dL</strong> (luglio 2025, ridotto da 267 di marzo) · <strong>ApoB 167</strong> · Colesterolo totale 346 · HDL 92 ottimo · Trigliceridi 74 ottimi.<br>
+      LDL &gt;190 in soggetto non trattato → criterio compatibile con ipercolesterolemia familiare. Consulto MMG/lipidologo <strong>entro 2–4 settimane</strong>. Il piano alimentare può ridurre LDL 10–25% ma non normalizzarlo da solo.</p>
+    </div>
+
+    <div class="alert alert-warning">
+      <h4>⚠️ Red flag secondari da girare al medico</h4>
+      <p>
+        · <strong>Ferro sierico 236</strong> µg/dL (ref 60–180) con ferritina normale a marzo — da riverificare, eventuale approfondimento emocromatosi.<br>
+        · <strong>Vitamina D 27</strong> ng/mL — subottimale, valutare supplementazione 1.000–2.000 UI/die.<br>
+        · <strong>Esame urine marzo 2025</strong>: batteriuria significativa (4.560 batteri, 177 leucociti) — verificare risoluzione.<br>
+        · <strong>Emitiroidectomia</strong>: confermare follow-up ecografico della metà residua.
+      </p>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Baseline antropometrico</h3>
+        <table>
+          <tr><td>Età / Sesso</td><td>48 anni / F</td></tr>
+          <tr><td>Altezza</td><td>173 cm</td></tr>
+          <tr><td>Peso iniziale</td><td>69 kg</td></tr>
+          <tr><td>Peso storico di riferimento</td><td>65 kg</td></tr>
+          <tr><td>Range adulto</td><td>62–71 kg</td></tr>
+          <tr><td>BMI</td><td>23,1 (normopeso alto)</td></tr>
+          <tr><td>Circonferenza vita</td><td>87 cm</td></tr>
+          <tr><td>Circonferenza fianchi</td><td>98 cm</td></tr>
+          <tr><td>WHR</td><td>0,89 (distribuzione centrale)</td></tr>
+          <tr><td>WHtR</td><td>0,50 (soglia attenzione)</td></tr>
+          <tr><td>% grasso stimato (Deurenberg)</td><td>~33% (±3–4%)</td></tr>
+          <tr><td>Massa magra stimata</td><td>~46 kg</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Calcoli energetici</h3>
+        <table>
+          <tr><td>BMR (Mifflin-St Jeor)</td><td>1.370 kcal/die</td></tr>
+          <tr><td>PAL stimato</td><td>1,50</td></tr>
+          <tr><td>TDEE</td><td>~2.050 kcal/die</td></tr>
+          <tr><td>Deficit target</td><td>-400 kcal/die (media)</td></tr>
+          <tr><td>Calorie target media</td><td>1.600 kcal/die</td></tr>
+          <tr><td>Calorie feriale</td><td>1.500–1.550</td></tr>
+          <tr><td>Calorie weekend</td><td>1.700–1.800</td></tr>
+          <tr><td>Floor di sicurezza</td><td>1.500 kcal/die (mai sotto)</td></tr>
+          <tr><td>Velocità perdita attesa</td><td>0,35–0,40 kg/settimana</td></tr>
+          <tr><td>Proiezione target (p=70%)</td><td>entro luglio</td></tr>
+          <tr><td>Proiezione target (p&gt;90%)</td><td>entro settembre</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;">
+      <h3>Assunzioni dichiarate</h3>
+      <ol style="padding-left: 1.2rem; font-size: 0.88rem;">
+        <li>Composizione corporea stimata con formula Deurenberg (errore ±3–4%). Raccomandato BIA o plicometria per riferimento oggettivo.</li>
+        <li>PAL 1,50 — se attività reale differisce significativamente, il TDEE va rivisto dopo 2 settimane di tracking peso.</li>
+        <li>Dislipidemia assunta NON trattata farmacologicamente. Se prescritta terapia, il piano alimentare resta valido invariato.</li>
+        <li>Circonferenze misurate correttamente (vita sopra ombelico a fine espirazione, fianchi nel punto più ampio).</li>
+        <li>Nessun altro farmaco/integratore in corso (confermato).</li>
+        <li>Ciclo mestruale regolare, senza menorragia significativa (coerente con ferritina 44 a marzo).</li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- Chart expand modal -->
+<div class="modal-bg" id="chart-modal-bg">
+  <div class="modal" id="chart-modal-content" style="max-width: 900px;">
+    <button class="close-btn" onclick="closeChartModal()" aria-label="Chiudi">×</button>
+    <h3 id="chart-modal-title">Grafico</h3>
+    <div class="chart-modal-wrap"><canvas id="chart-expanded"></canvas></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Floating undo button -->
+<button class="fab-undo" id="fab-undo" onclick="undoLast()" aria-label="Annulla ultima azione" title="Annulla ultima azione">
+  ↶<span class="badge" id="fab-undo-badge">0</span>
+</button>
+
+<script>
+/* ============ DATA ============ */
+const PATIENT = {
+  nome: 'Sonia', eta: 48, altezza: 173,
+  pesoIniziale: 69, pesoTarget: 64,
+  kcalTarget: 1600, kcalFeriale: 1525, kcalWeekend: 1750,
+  proteineTarget: 130, grassiTarget: 55, carboTarget: 135, fibreTarget: 25,
+  dataInizio: '2026-04-18', dataTarget: '2026-07-31'
+};
+
+const RECIPES = {
+  /* Colazioni */
+  b1: { nome: 'Yogurt greco con avena e frutti rossi', cat: 'colazione', kcal: 340, p: 27, c: 42, f: 6, fibre: 6, tempo: 5,
+    ingredienti: [
+      {nome: 'Yogurt greco 0%', qty: 200, unit: 'g', shop: 'latticini'},
+      {nome: 'Fiocchi d\'avena', qty: 35, unit: 'g', shop: 'cereali'},
+      {nome: 'Frutti di bosco (anche surgelati)', qty: 100, unit: 'g', shop: 'frutta'},
+      {nome: 'Miele', qty: 5, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Mescolare yogurt e avena in una ciotola. Lasciare riposare 2 minuti. Aggiungere frutti di bosco e un filo di miele. Consumare subito.' },
+  b2: { nome: 'Uova strapazzate con pomodoro e pane integrale', cat: 'colazione', kcal: 330, p: 22, c: 24, f: 15, fibre: 4, tempo: 8,
+    ingredienti: [
+      {nome: 'Uova', qty: 2, unit: 'pz', shop: 'proteine'},
+      {nome: 'Pomodorini', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Pane integrale', qty: 40, unit: 'g', shop: 'cereali'},
+      {nome: 'Olio evo', qty: 5, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Scaldare l\'olio in padella antiaderente. Rompere le uova e sbatterle leggermente in padella. Aggiungere i pomodorini tagliati. Cuocere 2-3 minuti mescolando. Servire con pane tostato.' },
+  b3: { nome: 'Pancake proteici avena-albumi', cat: 'colazione', kcal: 315, p: 28, c: 38, f: 5, fibre: 5, tempo: 10,
+    ingredienti: [
+      {nome: 'Albumi', qty: 150, unit: 'g', shop: 'proteine'},
+      {nome: 'Fiocchi d\'avena', qty: 50, unit: 'g', shop: 'cereali'},
+      {nome: 'Banana', qty: 60, unit: 'g', shop: 'frutta'},
+      {nome: 'Cannella', qty: 1, unit: 'pizzico', shop: 'dispensa'}
+    ],
+    istruzioni: 'Frullare albumi, avena, banana e cannella (Bimby 10 sec vel. 5). Versare in padella antiaderente leggermente unta in piccole porzioni. Cuocere 2 minuti per lato.' },
+  b4: { nome: 'Ricotta con mandorle e pane integrale', cat: 'colazione', kcal: 345, p: 22, c: 30, f: 18, fibre: 4, tempo: 5,
+    ingredienti: [
+      {nome: 'Ricotta vaccina', qty: 150, unit: 'g', shop: 'latticini'},
+      {nome: 'Mandorle', qty: 15, unit: 'g', shop: 'dispensa'},
+      {nome: 'Pane integrale', qty: 30, unit: 'g', shop: 'cereali'},
+      {nome: 'Miele', qty: 5, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Spalmare la ricotta sul pane tostato. Tritare grossolanamente le mandorle e spargerle sopra. Filo di miele.' },
+  b5: { nome: 'Yogurt greco con semi di chia e kiwi', cat: 'colazione', kcal: 320, p: 25, c: 35, f: 10, fibre: 8, tempo: 5,
+    ingredienti: [
+      {nome: 'Yogurt greco 0%', qty: 200, unit: 'g', shop: 'latticini'},
+      {nome: 'Semi di chia', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Kiwi', qty: 100, unit: 'g', shop: 'frutta'},
+      {nome: 'Fiocchi d\'avena', qty: 25, unit: 'g', shop: 'cereali'}
+    ],
+    istruzioni: 'Mescolare yogurt, chia e avena. Lasciare riposare 5 minuti. Aggiungere il kiwi tagliato a pezzi.' },
+  b6: { nome: 'Uova sode con avocado su pane', cat: 'colazione', kcal: 355, p: 20, c: 20, f: 22, fibre: 6, tempo: 12,
+    ingredienti: [
+      {nome: 'Uova', qty: 2, unit: 'pz', shop: 'proteine'},
+      {nome: 'Avocado', qty: 60, unit: 'g', shop: 'frutta'},
+      {nome: 'Pane integrale', qty: 40, unit: 'g', shop: 'cereali'},
+      {nome: 'Limone', qty: 0.25, unit: 'pz', shop: 'frutta'}
+    ],
+    istruzioni: 'Bollire le uova 8 minuti. Schiacciare l\'avocado con succo di limone, sale e pepe. Spalmare su pane tostato, adagiare uova affettate.' },
+
+  /* Pranzi */
+  l1: { nome: 'Pollo ai ferri con verdure grigliate', cat: 'pranzo', kcal: 450, p: 45, c: 20, f: 20, fibre: 6, tempo: 20,
+    ingredienti: [
+      {nome: 'Petto di pollo', qty: 150, unit: 'g', shop: 'proteine'},
+      {nome: 'Zucchine', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Peperoni', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Pane integrale', qty: 30, unit: 'g', shop: 'cereali'},
+      {nome: 'Rosmarino', qty: 1, unit: 'rametto', shop: 'verdura'}
+    ],
+    istruzioni: 'Marinare il pollo con olio, rosmarino e pepe 10 min. Cuocere su bistecchiera calda 4 min per lato. Grigliare le verdure tagliate a fette 3 min per lato.' },
+  l2: { nome: 'Insalatona tonno e cannellini', cat: 'pranzo', kcal: 455, p: 38, c: 35, f: 14, fibre: 11, tempo: 10,
+    ingredienti: [
+      {nome: 'Tonno al naturale', qty: 120, unit: 'g', shop: 'proteine'},
+      {nome: 'Fagioli cannellini lessati', qty: 120, unit: 'g', shop: 'dispensa'},
+      {nome: 'Rucola', qty: 50, unit: 'g', shop: 'verdura'},
+      {nome: 'Pomodorini', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Cipolla rossa', qty: 20, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Scolare tonno e cannellini. In una ciotola unire tutto con rucola, pomodorini tagliati, cipolla a velo. Condire con olio, sale e aceto.' },
+  l3: { nome: 'Frittata di zucchine e cipolla', cat: 'pranzo', kcal: 410, p: 32, c: 18, f: 22, fibre: 5, tempo: 15,
+    ingredienti: [
+      {nome: 'Uova', qty: 3, unit: 'pz', shop: 'proteine'},
+      {nome: 'Zucchine', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Cipolla', qty: 40, unit: 'g', shop: 'verdura'},
+      {nome: 'Parmigiano', qty: 10, unit: 'g', shop: 'latticini'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'},
+      {nome: 'Insalata mista', qty: 80, unit: 'g', shop: 'verdura'}
+    ],
+    istruzioni: 'Rosolare cipolla e zucchine a fette per 5 min. Sbattere uova con parmigiano, versare in padella. Cuocere 3 min, girare e finire 2 min. Servire con insalata condita.' },
+  l4: { nome: 'Salmone in padella con insalata', cat: 'pranzo', kcal: 480, p: 38, c: 18, f: 28, fibre: 5, tempo: 15,
+    ingredienti: [
+      {nome: 'Salmone fresco', qty: 140, unit: 'g', shop: 'proteine'},
+      {nome: 'Insalata mista', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Pomodorini', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Pane integrale', qty: 30, unit: 'g', shop: 'cereali'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'},
+      {nome: 'Limone', qty: 0.5, unit: 'pz', shop: 'frutta'}
+    ],
+    istruzioni: 'Scaldare padella antiaderente. Cuocere salmone dal lato pelle 4 min, girare e finire 3 min. Servire con insalata condita e spruzzo di limone.' },
+  l5: { nome: 'Tacchino con orzo perlato e verdure', cat: 'pranzo', kcal: 485, p: 40, c: 48, f: 10, fibre: 8, tempo: 35,
+    ingredienti: [
+      {nome: 'Petto di tacchino', qty: 140, unit: 'g', shop: 'proteine'},
+      {nome: 'Orzo perlato', qty: 50, unit: 'g', shop: 'cereali'},
+      {nome: 'Verdure miste (zucchine, carote, piselli)', qty: 200, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Brodo vegetale', qty: 200, unit: 'ml', shop: 'dispensa'}
+    ],
+    istruzioni: 'Lessare l\'orzo 30 min (oppure Bimby 20 min 100°C). Rosolare tacchino a cubetti 5 min, aggiungere verdure e brodo, cuocere 10 min. Unire l\'orzo.' },
+  l6: { nome: 'Bresaola, rucola e grana', cat: 'pranzo', kcal: 440, p: 42, c: 25, f: 18, fibre: 5, tempo: 5,
+    ingredienti: [
+      {nome: 'Bresaola della Valtellina', qty: 100, unit: 'g', shop: 'proteine'},
+      {nome: 'Rucola', qty: 80, unit: 'g', shop: 'verdura'},
+      {nome: 'Grana padano', qty: 25, unit: 'g', shop: 'latticini'},
+      {nome: 'Pane integrale', qty: 40, unit: 'g', shop: 'cereali'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'},
+      {nome: 'Limone', qty: 0.25, unit: 'pz', shop: 'frutta'}
+    ],
+    istruzioni: 'Disporre bresaola su piatto, coprire di rucola, scaglie di grana, filo d\'olio e limone. Accompagnare con pane tostato.' },
+  l7: { nome: 'Merluzzo al forno con patate e zucchine', cat: 'pranzo', kcal: 430, p: 38, c: 35, f: 12, fibre: 6, tempo: 30,
+    ingredienti: [
+      {nome: 'Merluzzo', qty: 160, unit: 'g', shop: 'proteine'},
+      {nome: 'Patate', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Zucchine', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Prezzemolo', qty: 1, unit: 'ciuffo', shop: 'verdura'}
+    ],
+    istruzioni: 'Tagliare patate a fette sottili, disporle in teglia con olio. Aggiungere zucchine. 20 min a 200°C. Adagiare il merluzzo, altri 12 min. Cospargere prezzemolo.' },
+  l8: { nome: 'Pollo e quinoa con pomodorini', cat: 'pranzo', kcal: 490, p: 42, c: 42, f: 14, fibre: 6, tempo: 25,
+    ingredienti: [
+      {nome: 'Petto di pollo', qty: 120, unit: 'g', shop: 'proteine'},
+      {nome: 'Quinoa', qty: 50, unit: 'g', shop: 'cereali'},
+      {nome: 'Pomodorini', qty: 120, unit: 'g', shop: 'verdura'},
+      {nome: 'Cetrioli', qty: 80, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Menta', qty: 4, unit: 'foglie', shop: 'verdura'}
+    ],
+    istruzioni: 'Lessare la quinoa 12 min. Grigliare il pollo e tagliarlo a cubetti. Unire tutto con pomodorini e cetrioli, condire olio, sale, menta.' },
+  l9: { nome: 'Polpettine di tacchino con broccoli', cat: 'pranzo', kcal: 445, p: 40, c: 22, f: 22, fibre: 8, tempo: 25,
+    ingredienti: [
+      {nome: 'Tacchino macinato', qty: 150, unit: 'g', shop: 'proteine'},
+      {nome: 'Pangrattato integrale', qty: 15, unit: 'g', shop: 'cereali'},
+      {nome: 'Uovo', qty: 0.5, unit: 'pz', shop: 'proteine'},
+      {nome: 'Broccoli', qty: 200, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Aglio', qty: 1, unit: 'spicchio', shop: 'verdura'}
+    ],
+    istruzioni: 'Impastare tacchino, pangrattato, uovo, sale. Formare polpettine, cuocere in padella 10 min. Saltare broccoli (precedentemente sbollentati 5 min) con aglio e olio.' },
+  l10: { nome: 'Farro freddo con verdure e ceci', cat: 'pranzo', kcal: 480, p: 22, c: 65, f: 12, fibre: 12, tempo: 30,
+    ingredienti: [
+      {nome: 'Farro perlato', qty: 60, unit: 'g', shop: 'cereali'},
+      {nome: 'Ceci lessati', qty: 100, unit: 'g', shop: 'dispensa'},
+      {nome: 'Pomodorini', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Zucchine', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Feta', qty: 30, unit: 'g', shop: 'latticini'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Basilico', qty: 5, unit: 'foglie', shop: 'verdura'}
+    ],
+    istruzioni: 'Lessare farro 25 min. Grigliare zucchine a fette. Unire farro, ceci, pomodorini, zucchine, feta a cubetti. Condire olio, basilico, sale.' },
+
+  /* Spuntini */
+  s1: { nome: 'Mela e mandorle', cat: 'spuntino', kcal: 180, p: 4, c: 22, f: 10, fibre: 5, tempo: 1,
+    ingredienti: [
+      {nome: 'Mela', qty: 200, unit: 'g', shop: 'frutta'},
+      {nome: 'Mandorle', qty: 15, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Consumare mela intera. Mandorle in porzione pre-pesata (bustina monodose preparata nel weekend).' },
+  s2: { nome: 'Yogurt greco con cioccolato fondente', cat: 'spuntino', kcal: 175, p: 18, c: 15, f: 7, fibre: 2, tempo: 2,
+    ingredienti: [
+      {nome: 'Yogurt greco 0%', qty: 150, unit: 'g', shop: 'latticini'},
+      {nome: 'Cioccolato fondente 85%+', qty: 15, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Sminuzzare il cioccolato sullo yogurt. Porzione quadretti pre-separati.' },
+  s3: { nome: 'Pera e noci', cat: 'spuntino', kcal: 170, p: 3, c: 22, f: 9, fibre: 4, tempo: 1,
+    ingredienti: [
+      {nome: 'Pera', qty: 180, unit: 'g', shop: 'frutta'},
+      {nome: 'Noci sgusciate', qty: 15, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Consumare pera intera. Noci in porzione pre-pesata.' },
+  s4: { nome: 'Carote e hummus', cat: 'spuntino', kcal: 160, p: 6, c: 18, f: 8, fibre: 6, tempo: 2,
+    ingredienti: [
+      {nome: 'Carote', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Hummus di ceci', qty: 50, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Tagliare carote a bastoncini. Hummus (anche industriale o fatto in casa con Bimby: 200g ceci + 30g tahini + limone + aglio + sale).' },
+  s5: { nome: 'Ricotta con frutti di bosco', cat: 'spuntino', kcal: 170, p: 14, c: 10, f: 9, fibre: 4, tempo: 2,
+    ingredienti: [
+      {nome: 'Ricotta vaccina', qty: 100, unit: 'g', shop: 'latticini'},
+      {nome: 'Frutti di bosco', qty: 100, unit: 'g', shop: 'frutta'}
+    ],
+    istruzioni: 'Mescolare ricotta e frutti di bosco. Facoltativo: un filo di miele.' },
+  s6: { nome: 'Fragole e grana', cat: 'spuntino', kcal: 175, p: 12, c: 12, f: 10, fibre: 3, tempo: 1,
+    ingredienti: [
+      {nome: 'Fragole', qty: 150, unit: 'g', shop: 'frutta'},
+      {nome: 'Grana padano', qty: 30, unit: 'g', shop: 'latticini'}
+    ],
+    istruzioni: 'Abbinamento classico italiano. Fragole tagliate + grana a scaglie.' },
+  s7: { nome: 'Yogurt greco con banana', cat: 'spuntino', kcal: 195, p: 18, c: 25, f: 3, fibre: 3, tempo: 1,
+    ingredienti: [
+      {nome: 'Yogurt greco 0%', qty: 170, unit: 'g', shop: 'latticini'},
+      {nome: 'Banana', qty: 80, unit: 'g', shop: 'frutta'}
+    ],
+    istruzioni: 'Da usare in giornate pre-allenamento o in fase luteale (premestruo).' },
+
+  /* Cene */
+  c1: { nome: 'Salmone con lenticchie e zucchine', cat: 'cena', kcal: 510, p: 40, c: 32, f: 22, fibre: 11, tempo: 25,
+    ingredienti: [
+      {nome: 'Salmone fresco', qty: 140, unit: 'g', shop: 'proteine'},
+      {nome: 'Lenticchie lessate', qty: 100, unit: 'g', shop: 'dispensa'},
+      {nome: 'Zucchine', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'},
+      {nome: 'Limone', qty: 0.5, unit: 'pz', shop: 'frutta'}
+    ],
+    istruzioni: 'Cuocere salmone in padella 4 min per lato. Scaldare lenticchie con olio e rosmarino. Grigliare zucchine a fette.' },
+  c2: { nome: 'Minestrone con uova sode', cat: 'cena', kcal: 460, p: 24, c: 48, f: 18, fibre: 13, tempo: 30,
+    ingredienti: [
+      {nome: 'Verdure miste da minestrone (surgelate o fresche)', qty: 400, unit: 'g', shop: 'verdura'},
+      {nome: 'Fagioli borlotti lessati', qty: 70, unit: 'g', shop: 'dispensa'},
+      {nome: 'Uova', qty: 2, unit: 'pz', shop: 'proteine'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Parmigiano', qty: 10, unit: 'g', shop: 'latticini'}
+    ],
+    istruzioni: 'Minestrone in Bimby (30 min 100°C vel. 1, frullare vel. 5 per cremoso). Aggiungere fagioli. Nel frattempo bollire uova 8 min. Impiattare con olio e parmigiano.' },
+  c3: { nome: 'Pollo arrosto con broccoli', cat: 'cena', kcal: 435, p: 42, c: 18, f: 20, fibre: 7, tempo: 30,
+    ingredienti: [
+      {nome: 'Petto di pollo', qty: 150, unit: 'g', shop: 'proteine'},
+      {nome: 'Broccoli', qty: 250, unit: 'g', shop: 'verdura'},
+      {nome: 'Pane integrale', qty: 25, unit: 'g', shop: 'cereali'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Aglio', qty: 1, unit: 'spicchio', shop: 'verdura'}
+    ],
+    istruzioni: 'Pollo al forno 20 min a 200°C con olio e aglio. Broccoli sbollentati 5 min, poi saltati in padella con olio e aglio.' },
+  c4: { nome: 'Platessa con spinaci e patate', cat: 'cena', kcal: 415, p: 34, c: 22, f: 18, fibre: 8, tempo: 20,
+    ingredienti: [
+      {nome: 'Platessa', qty: 160, unit: 'g', shop: 'proteine'},
+      {nome: 'Spinaci', qty: 200, unit: 'g', shop: 'verdura'},
+      {nome: 'Patate', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Limone', qty: 0.5, unit: 'pz', shop: 'frutta'}
+    ],
+    istruzioni: 'Lessare patate 15 min. Platessa al vapore o in padella con limone 6 min. Spinaci saltati con aglio 3 min.' },
+  c5: { nome: 'Vellutata di zucca e ceci', cat: 'cena', kcal: 465, p: 22, c: 52, f: 15, fibre: 12, tempo: 35,
+    ingredienti: [
+      {nome: 'Zucca', qty: 300, unit: 'g', shop: 'verdura'},
+      {nome: 'Ceci lessati', qty: 100, unit: 'g', shop: 'dispensa'},
+      {nome: 'Pane integrale', qty: 25, unit: 'g', shop: 'cereali'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Parmigiano', qty: 10, unit: 'g', shop: 'latticini'},
+      {nome: 'Cipolla', qty: 30, unit: 'g', shop: 'verdura'}
+    ],
+    istruzioni: 'Bimby: soffritto cipolla 3 min 100°C vel. 1. Aggiungere zucca a cubetti e acqua (400 ml). 20 min 100°C. Frullare 30 sec vel. 10. Aggiungere ceci interi, parmigiano.' },
+  c6: { nome: 'Orata al forno con fagiolini', cat: 'cena', kcal: 445, p: 36, c: 22, f: 22, fibre: 7, tempo: 30,
+    ingredienti: [
+      {nome: 'Orata', qty: 180, unit: 'g', shop: 'proteine'},
+      {nome: 'Fagiolini', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Patate', qty: 80, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Limone', qty: 0.5, unit: 'pz', shop: 'frutta'},
+      {nome: 'Rosmarino', qty: 1, unit: 'rametto', shop: 'verdura'}
+    ],
+    istruzioni: 'Orata pulita al forno 20 min 200°C con limone e rosmarino. Fagiolini lessati 8 min, poi saltati. Patate al forno contemporanee.' },
+  c7: { nome: 'Sgombro al forno con cavolfiore', cat: 'cena', kcal: 510, p: 36, c: 25, f: 30, fibre: 10, tempo: 25,
+    ingredienti: [
+      {nome: 'Sgombro fresco', qty: 150, unit: 'g', shop: 'proteine'},
+      {nome: 'Cavolfiore', qty: 200, unit: 'g', shop: 'verdura'},
+      {nome: 'Ceci lessati', qty: 80, unit: 'g', shop: 'dispensa'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'},
+      {nome: 'Limone', qty: 0.5, unit: 'pz', shop: 'frutta'}
+    ],
+    istruzioni: 'Sgombro al forno 15 min 200°C con limone. Cavolfiore sbollentato 8 min, poi gratinato in forno 10 min. Ceci scaldati con olio.' },
+  c8: { nome: 'Tacchino con quinoa e zucchine', cat: 'cena', kcal: 465, p: 40, c: 35, f: 14, fibre: 6, tempo: 25,
+    ingredienti: [
+      {nome: 'Petto di tacchino', qty: 140, unit: 'g', shop: 'proteine'},
+      {nome: 'Quinoa', qty: 50, unit: 'g', shop: 'cereali'},
+      {nome: 'Zucchine', qty: 200, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Quinoa lessata 12 min. Tacchino a strisce saltato 6 min. Zucchine a fette grigliate. Impiattare insieme.' },
+
+  /* Weekend — "liberi" budgeted */
+  w1: { nome: 'Pasta integrale con verdure e tonno (weekend)', cat: 'weekend', kcal: 560, p: 30, c: 68, f: 16, fibre: 9, tempo: 20,
+    ingredienti: [
+      {nome: 'Pasta integrale', qty: 70, unit: 'g', shop: 'cereali'},
+      {nome: 'Tonno al naturale', qty: 80, unit: 'g', shop: 'proteine'},
+      {nome: 'Zucchine', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Pomodorini', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 10, unit: 'g', shop: 'dispensa'},
+      {nome: 'Aglio', qty: 1, unit: 'spicchio', shop: 'verdura'}
+    ],
+    istruzioni: 'Saltare aglio, zucchine e pomodorini 6 min. Aggiungere tonno sgocciolato. Cuocere pasta al dente, scolare e saltare in padella.' },
+  w2: { nome: 'Pizza margherita + insalata (weekend)', cat: 'weekend', kcal: 720, p: 28, c: 90, f: 22, fibre: 8, tempo: 5,
+    ingredienti: [
+      {nome: 'Pizza margherita (pizzeria o surgelata)', qty: 320, unit: 'g', shop: 'altro'},
+      {nome: 'Insalata mista', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Pomodorini', qty: 50, unit: 'g', shop: 'verdura'},
+      {nome: 'Olio evo', qty: 5, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'La pizza del sabato/domenica è pianificata. Limitare a margherita o marinara (no farcite). Insalata condita prima della pizza (saziante).' },
+  w3: { nome: 'Pasta al ragù magro di tacchino (weekend)', cat: 'weekend', kcal: 610, p: 38, c: 70, f: 16, fibre: 6, tempo: 40,
+    ingredienti: [
+      {nome: 'Pasta', qty: 70, unit: 'g', shop: 'cereali'},
+      {nome: 'Tacchino macinato', qty: 100, unit: 'g', shop: 'proteine'},
+      {nome: 'Passata di pomodoro', qty: 150, unit: 'g', shop: 'dispensa'},
+      {nome: 'Cipolla', qty: 40, unit: 'g', shop: 'verdura'},
+      {nome: 'Carote', qty: 50, unit: 'g', shop: 'verdura'},
+      {nome: 'Sedano', qty: 30, unit: 'g', shop: 'verdura'},
+      {nome: 'Parmigiano', qty: 10, unit: 'g', shop: 'latticini'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Soffritto classico (cipolla-carota-sedano) 5 min. Aggiungere tacchino macinato, rosolare 5 min. Unire passata, cuocere 25 min. Condire pasta.' },
+  w4: { nome: 'Cena leggera post-pizza: bresaola e insalata', cat: 'weekend', kcal: 380, p: 35, c: 20, f: 16, fibre: 5, tempo: 5,
+    ingredienti: [
+      {nome: 'Bresaola', qty: 80, unit: 'g', shop: 'proteine'},
+      {nome: 'Insalata mista', qty: 150, unit: 'g', shop: 'verdura'},
+      {nome: 'Pomodorini', qty: 100, unit: 'g', shop: 'verdura'},
+      {nome: 'Grana padano', qty: 15, unit: 'g', shop: 'latticini'},
+      {nome: 'Pane integrale', qty: 25, unit: 'g', shop: 'cereali'},
+      {nome: 'Olio evo', qty: 8, unit: 'g', shop: 'dispensa'}
+    ],
+    istruzioni: 'Piatto di compensazione dopo pranzo più abbondante. Tutto crudo, veloce.' }
+};
+
+/* Piano settimanale di default */
+const DEFAULT_PLAN = {
+  lunedi:    { colazione: 'b1', pranzo: 'l1', spuntino: 's1', cena: 'c1' },
+  martedi:   { colazione: 'b2', pranzo: 'l2', spuntino: 's2', cena: 'c2' },
+  mercoledi: { colazione: 'b3', pranzo: 'l3', spuntino: 's3', cena: 'c3' },
+  giovedi:   { colazione: 'b5', pranzo: 'l5', spuntino: 's5', cena: 'c4' },
+  venerdi:   { colazione: 'b6', pranzo: 'l6', spuntino: 's6', cena: 'c7' },
+  sabato:    { colazione: 'b1', pranzo: 'w1', spuntino: 's7', cena: 'w2' },
+  domenica:  { colazione: 'b4', pranzo: 'w3', spuntino: 's1', cena: 'w4' }
+};
+
+const GIORNI = ['lunedi','martedi','mercoledi','giovedi','venerdi','sabato','domenica'];
+const GIORNI_LABEL = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+const GIORNI_SHORT = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+const PASTI = ['colazione','pranzo','spuntino','cena'];
+const PASTI_LABEL = {colazione:'Colazione',pranzo:'Pranzo',spuntino:'Spuntino',cena:'Cena'};
+const PASTI_EMOJI = {colazione:'🌅',pranzo:'🍽️',spuntino:'🥪',cena:'🌙'};
+
+const WORKOUTS = {
+  weekSchedule: [
+    { giorno: 'Lun', tipo: 'Forza A', durata: '55 min', colore: '#2d5a3d' },
+    { giorno: 'Mar', tipo: 'Riposo attivo', durata: 'camminata 30 min', colore: '#9ca3af' },
+    { giorno: 'Mer', tipo: 'Forza B', durata: '55 min', colore: '#2d5a3d' },
+    { giorno: 'Gio', tipo: 'Riposo attivo', durata: 'camminata 30 min', colore: '#9ca3af' },
+    { giorno: 'Ven', tipo: 'Forza A', durata: '55 min (progression)', colore: '#2d5a3d' },
+    { giorno: 'Sab', tipo: 'Cardio Z2 (opz.)', durata: '30 min bici/camm.', colore: '#d4a556' },
+    { giorno: 'Dom', tipo: 'Riposo + mobility', durata: '10 min', colore: '#9ca3af' }
+  ],
+  programA: {
+    nome: 'Programma A — Full body (Lun + Ven)',
+    sottotitolo: 'Focus: gambe + push + core. Da eseguire lunedì e venerdì, con leggera progressione il venerdì.',
+    sezioni: [
+      { titolo: 'Riscaldamento (8 min)', esercizi: [
+        { nome: 'Tapis roulant camminata inclinata', set: '1', reps: '8 min', note: 'Pendenza 6–8%, velocità 5 km/h. Attivazione generale.' }
+      ]},
+      { titolo: 'Blocco forza (40 min)', esercizi: [
+        { nome: 'Squat goblet (con manubrio/kettlebell)', set: '3', reps: '10', note: 'Rec 60s. Piedi larghezza spalle. Scendere fino a cosce parallele.' },
+        { nome: 'Panca piana con manubri', set: '3', reps: '10', note: 'Rec 60s. Manubri leggeri per partire, forma pulita.' },
+        { nome: 'Lat machine o pulldown presa larga', set: '3', reps: '10–12', note: 'Rec 60s. Tirare verso sterno, scapole addotte.' },
+        { nome: 'Rematore con manubri a busto piegato', set: '3', reps: '10', note: 'Rec 60s. Una mano su panca, schiena neutra.' },
+        { nome: 'Glute bridge a terra', set: '3', reps: '12–15', note: 'Rec 45s. Contrazione forte in alto, 1 sec pausa.' },
+        { nome: 'Plank frontale', set: '3', reps: '30–45 sec', note: 'Rec 45s. Addome attivo, niente cedimento bacino.' }
+      ]},
+      { titolo: 'Defaticamento cardio (10–12 min)', esercizi: [
+        { nome: 'Tapis roulant Zona 2', set: '1', reps: '10–12 min', note: 'Camminata 5–5,5 km/h con pendenza 3–4%. FC 96–113 bpm.' }
+      ]}
+    ]
+  },
+  programB: {
+    nome: 'Programma B — Alternato (Mer)',
+    sottotitolo: 'Focus: catena posteriore + push verticale + mobilità. Alterna stimolo rispetto al Programma A.',
+    sezioni: [
+      { titolo: 'Riscaldamento (8 min)', esercizi: [
+        { nome: 'Bike o tapis roulant Zona 2', set: '1', reps: '8 min', note: 'Resistenza media, FC 96–113 bpm.' }
+      ]},
+      { titolo: 'Blocco forza (40 min)', esercizi: [
+        { nome: 'Affondi alternati con manubri', set: '3', reps: '10/gamba', note: 'Rec 60s. Passo lungo, ginocchio posteriore quasi a terra.' },
+        { nome: 'Stacco rumeno con manubri', set: '3', reps: '10', note: 'Rec 75s. Cerniera d\'anca, ginocchia leggermente flesse, schiena dritta.' },
+        { nome: 'Shoulder press con manubri seduta', set: '3', reps: '10', note: 'Rec 60s. Schiena sullo schienale, discesa controllata.' },
+        { nome: 'Trazioni assistite o pulldown presa neutra', set: '3', reps: '8–10', note: 'Rec 75s. Tirare con gomiti, niente slancio.' },
+        { nome: 'Pallof press ai cavi (antirotazione)', set: '3', reps: '12/lato', note: 'Rec 45s. Core teso, braccia estese lontano dal corpo.' },
+        { nome: 'Curl bicipiti + tricipiti (superset)', set: '2', reps: '12+12', note: 'Rec 60s. Finisher, carichi leggeri.' }
+      ]},
+      { titolo: 'Defaticamento cardio (12–15 min)', esercizi: [
+        { nome: 'Zona 2 continua (bike o tapis)', set: '1', reps: '12–15 min', note: 'Obiettivo: sudare leggermente, respirare profondo senza affanno.' }
+      ]}
+    ]
+  },
+  programC: {
+    nome: 'Programma C — Cardio Z2 opzionale (Sab)',
+    sottotitolo: 'Da aggiungere se la settimana è stata rispettata e l\'energia è buona. Se stanca: skippa.',
+    sezioni: [
+      { titolo: 'Opzione A — All\'aperto', esercizi: [
+        { nome: 'Camminata veloce in salita', set: '1', reps: '30 min', note: 'Passo 6 km/h, pendenza 5–8%. Parco collinare o quartiere con salite.' }
+      ]},
+      { titolo: 'Opzione B — Palestra/casa', esercizi: [
+        { nome: 'Bicicletta statica Zona 2', set: '1', reps: '30 min', note: 'Resistenza media-alta, cadenza 70–80 rpm.' }
+      ]},
+      { titolo: 'Opzione C — Misto', esercizi: [
+        { nome: '15 min tapis roulant + 15 min bike', set: '1', reps: '30 min', note: 'Cambio stimolo, meno noia. Sempre in Z2.' }
+      ]}
+    ]
+  }
+};
+
+/* ============ STATE ============ */
+const STORAGE_KEY = 'sonia_nutrition_v1';
+
+let state = {
+  plan: JSON.parse(JSON.stringify(DEFAULT_PLAN)),
+  mealStatus: {}, // {date: {colazione: 'done'|'skipped'|'swapped', ...}}
+  mealSwaps: {},  // {date: {colazione: recipeId}}
+  weights: [],    // [{date:'2026-04-18', peso: 69}]
+  measures: [],   // [{date, vita, fianchi}]
+  kcal: {},       // {date: {value, note}}
+  shopping: {},   // {itemKey: {checked: bool}}
+  shoppingOverride: null // cached aggregated list
+};
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      state = Object.assign(state, parsed);
+    } catch(e) { console.warn('State corrupted, resetting'); }
+  }
+  // Seed initial weight
+  if (state.weights.length === 0) {
+    state.weights.push({date: PATIENT.dataInizio, peso: PATIENT.pesoIniziale});
+    saveState();
+  }
+  // Seed initial measure
+  if (state.measures.length === 0) {
+    state.measures.push({date: PATIENT.dataInizio, vita: 87, fianchi: 98});
+    saveState();
+  }
+}
+
+/* ============ UNDO / HISTORY ============ */
+const HISTORY_KEY = 'sonia_nutrition_history_v1';
+const MAX_HISTORY = 20;
+let history = [];
+let toastCounter = 0;
+
+function loadHistory() {
+  try {
+    const raw = sessionStorage.getItem(HISTORY_KEY);
+    if (raw) history = JSON.parse(raw);
+  } catch(e) { history = []; }
+  updateFab();
+}
+
+function saveHistory() {
+  try {
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch(e) { /* full, ignore */ }
+}
+
+function snapshot(label) {
+  // Deep clone current state (excluding shoppingOverride which is just cache)
+  const snap = {
+    label: label || 'azione',
+    ts: Date.now(),
+    data: JSON.parse(JSON.stringify({
+      plan: state.plan,
+      mealStatus: state.mealStatus,
+      mealSwaps: state.mealSwaps,
+      weights: state.weights,
+      measures: state.measures,
+      kcal: state.kcal,
+      shopping: state.shopping
+    }))
+  };
+  history.push(snap);
+  if (history.length > MAX_HISTORY) history.shift();
+  saveHistory();
+  updateFab();
+}
+
+function undoLast() {
+  if (!history.length) { showToast('Nulla da annullare', null, 'info'); return; }
+  const snap = history.pop();
+  Object.assign(state, snap.data);
+  saveState();
+  saveHistory();
+  updateFab();
+  // Re-render current section
+  const activeBtn = document.querySelector('nav .tab-btn.active');
+  if (activeBtn && activeBtn.dataset.tab) {
+    renderActiveTab(activeBtn.dataset.tab);
+  } else {
+    renderDashboard();
+  }
+  showToast(`Annullato: ${snap.label}`, null, 'info');
+}
+
+function updateFab() {
+  const fab = document.getElementById('fab-undo');
+  const badge = document.getElementById('fab-undo-badge');
+  if (!fab) return;
+  if (history.length > 0) {
+    fab.classList.add('show');
+    badge.textContent = history.length;
+  } else {
+    fab.classList.remove('show');
+  }
+}
+
+/* Wrapper: execute a mutating action with undo support */
+function doWithUndo(label, fn) {
+  snapshot(label);
+  fn();
+  saveState();
+  showToast(label, label);
+}
+
+function showToast(msg, undoLabel, kind) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const id = 'toast-' + (++toastCounter);
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.id = id;
+  const inner = document.createElement('div');
+  inner.className = 'toast-msg';
+  inner.textContent = msg;
+  t.appendChild(inner);
+  if (undoLabel && kind !== 'info') {
+    const btn = document.createElement('button');
+    btn.className = 'toast-undo';
+    btn.textContent = 'Annulla';
+    btn.onclick = () => { undoLast(); removeToast(id); };
+    t.appendChild(btn);
+  }
+  const close = document.createElement('button');
+  close.className = 'toast-close';
+  close.textContent = '×';
+  close.onclick = () => removeToast(id);
+  t.appendChild(close);
+  container.appendChild(t);
+  setTimeout(() => removeToast(id), kind === 'info' ? 2500 : 5000);
+}
+function removeToast(id) {
+  const t = document.getElementById(id);
+  if (t) t.remove();
+}
+
+/* ============ CHART EXPAND ============ */
+let chartExpanded = null;
+function expandChart(which) {
+  const bg = document.getElementById('chart-modal-bg');
+  const titleEl = document.getElementById('chart-modal-title');
+  const canvas = document.getElementById('chart-expanded');
+  if (chartExpanded) { chartExpanded.destroy(); chartExpanded = null; }
+
+  let config, title;
+  if (which === 'weight') {
+    const wdata = state.weights.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    title = 'Trend peso';
+    config = {
+      type: 'line',
+      data: {
+        labels: wdata.map(w => w.date),
+        datasets: [
+          { label: 'Peso (kg)', data: wdata.map(w => w.peso), borderColor: '#2d5a3d', backgroundColor: 'rgba(45,90,61,0.12)', tension: 0.25, fill: true, pointRadius: 5 },
+          { label: 'Target', data: wdata.map(()=>PATIENT.pesoTarget), borderColor: '#d4a556', borderDash:[6,4], pointRadius: 0 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } }, scales: { y: { beginAtZero: false, suggestedMin: 60, suggestedMax: 72 } } }
+    };
+  } else if (which === 'kcal') {
+    const today = new Date();
+    const labels = [], dataActual = [], dataTarget = [];
+    for (let i=6;i>=0;i--){
+      const d = new Date(today); d.setDate(d.getDate()-i);
+      const iso = d.toISOString().slice(0,10);
+      const dow = (d.getDay()+6)%7;
+      const giornoKey = GIORNI[dow];
+      labels.push(iso.slice(5));
+      dataActual.push(state.kcal[iso]?.value || null);
+      dataTarget.push(getDayKcalTarget(giornoKey));
+    }
+    title = 'Kcal — ultimi 7 giorni';
+    config = {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Consumate', data: dataActual, backgroundColor: '#2d5a3d' },
+          { label: 'Target', data: dataTarget, type: 'line', borderColor: '#d4a556', backgroundColor: '#d4a556', tension: 0, pointRadius: 4 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } }, scales: { y: { beginAtZero: true, suggestedMax: 2200 } } }
+    };
+  } else if (which === 'progress') {
+    const wdata = state.weights.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    title = 'Curva del peso';
+    config = {
+      type: 'line',
+      data: {
+        labels: wdata.map(w => w.date),
+        datasets: [
+          { label: 'Peso (kg)', data: wdata.map(w => w.peso), borderColor: '#2d5a3d', backgroundColor: 'rgba(45,90,61,0.15)', tension: 0.2, fill: true, pointRadius: 6 },
+          { label: 'Traiettoria ideale', data: idealTrajectory(wdata), borderColor: '#d4a556', borderDash:[5,5], pointRadius: 0, fill: false },
+          { label: 'Target 64', data: wdata.map(()=>PATIENT.pesoTarget), borderColor: '#dc2626', borderDash:[3,3], pointRadius: 0, fill: false }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { suggestedMin: 62, suggestedMax: 72 } } }
+    };
+  }
+  titleEl.textContent = title;
+  chartExpanded = new Chart(canvas, config);
+  bg.classList.add('show');
+}
+function closeChartModal() {
+  if (chartExpanded) { chartExpanded.destroy(); chartExpanded = null; }
+  document.getElementById('chart-modal-bg').classList.remove('show');
+}
+window.expandChart = expandChart;
+window.closeChartModal = closeChartModal;
+window.undoLast = undoLast;
+
+/* ============ UTIL ============ */
+function todayISO() { return new Date().toISOString().slice(0,10); }
+function daysBetween(d1, d2) { return Math.round((new Date(d2) - new Date(d1)) / 86400000); }
+function currentWeight() { return state.weights.length ? state.weights[state.weights.length-1].peso : PATIENT.pesoIniziale; }
+
+function getDayKcalTarget(giorno) {
+  return (giorno === 'sabato' || giorno === 'domenica') ? PATIENT.kcalWeekend : PATIENT.kcalFeriale;
+}
+
+function getDayPlannedKcal(giorno) {
+  const d = state.plan[giorno];
+  return PASTI.reduce((sum, p) => sum + (RECIPES[d[p]]?.kcal || 0), 0);
+}
+
+function getDayPlannedMacros(giorno) {
+  const d = state.plan[giorno];
+  return PASTI.reduce((acc, p) => {
+    const r = RECIPES[d[p]];
+    if (r) { acc.p += r.p; acc.c += r.c; acc.f += r.f; acc.fibre += r.fibre; }
+    return acc;
+  }, {p:0, c:0, f:0, fibre:0});
+}
+
+/* ============ TAB NAVIGATION ============ */
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('section').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById(b.dataset.tab).classList.add('active');
+    renderActiveTab(b.dataset.tab);
+  });
+});
+
+function renderActiveTab(tab) {
+  switch(tab) {
+    case 'dashboard': renderDashboard(); break;
+    case 'piano': renderPiano(); break;
+    case 'ricette': renderRicette(); break;
+    case 'tracking': renderTracking(); break;
+    case 'spesa': renderSpesa(); break;
+    case 'progressi': renderProgressi(); break;
+    case 'allenamento': renderAllenamento(); break;
+  }
+}
+
+/* ============ DASHBOARD ============ */
+let chartWeight, chartKcal, chartProgress;
+
+function renderDashboard() {
+  const cw = currentWeight();
+  const delta = cw - PATIENT.pesoIniziale;
+  document.getElementById('kpi-weight').textContent = cw.toFixed(1) + ' kg';
+  const deltaEl = document.getElementById('kpi-delta');
+  if (delta < 0) { deltaEl.textContent = (delta).toFixed(1) + ' kg dall\'inizio'; deltaEl.className = 'delta pos'; }
+  else if (delta > 0) { deltaEl.textContent = '+' + delta.toFixed(1) + ' kg dall\'inizio'; deltaEl.className = 'delta neg'; }
+  else { deltaEl.textContent = 'Pesata iniziale'; deltaEl.className = 'delta'; }
+
+  const togo = Math.max(0, cw - PATIENT.pesoTarget);
+  document.getElementById('kpi-togo').textContent = togo.toFixed(1) + ' kg';
+
+  const daysLeft = Math.max(0, daysBetween(todayISO(), PATIENT.dataTarget));
+  document.getElementById('kpi-days').textContent = daysLeft;
+  document.getElementById('header-days').textContent = daysLeft + ' giorni al target';
+  document.getElementById('header-weight').textContent = cw.toFixed(1) + ' kg';
+
+  // Weight chart
+  const wdata = state.weights.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if (chartWeight) chartWeight.destroy();
+  chartWeight = new Chart(document.getElementById('chart-weight'), {
+    type: 'line',
+    data: {
+      labels: wdata.map(w => w.date.slice(5)),
+      datasets: [
+        { label: 'Peso (kg)', data: wdata.map(w => w.peso), borderColor: '#2d5a3d', backgroundColor: 'rgba(45,90,61,0.12)', tension: 0.25, fill: true, pointRadius: 4 },
+        { label: 'Target', data: wdata.map(()=>PATIENT.pesoTarget), borderColor: '#d4a556', borderDash:[6,4], pointRadius: 0 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } }, scales: { y: { beginAtZero: false, suggestedMin: 60, suggestedMax: 72 } } }
+  });
+
+  // Kcal chart (last 7 days)
+  const today = new Date();
+  const labels = [], dataActual = [], dataTarget = [];
+  for (let i=6;i>=0;i--){
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    const iso = d.toISOString().slice(0,10);
+    const dow = (d.getDay()+6)%7; // lunedi=0
+    const giornoKey = GIORNI[dow];
+    labels.push(iso.slice(5));
+    dataActual.push(state.kcal[iso]?.value || null);
+    dataTarget.push(getDayKcalTarget(giornoKey));
+  }
+  if (chartKcal) chartKcal.destroy();
+  chartKcal = new Chart(document.getElementById('chart-kcal'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Consumate', data: dataActual, backgroundColor: '#2d5a3d' },
+        { label: 'Target', data: dataTarget, type: 'line', borderColor: '#d4a556', backgroundColor: '#d4a556', tension: 0, pointRadius: 3 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } }, scales: { y: { beginAtZero: true, suggestedMax: 2200 } } }
+  });
+}
+
+/* ============ PIANO ============ */
+let mobileSelectedDay = null;
+
+function renderPiano() {
+  // Desktop grid
+  const grid = document.getElementById('week-grid');
+  grid.innerHTML = '';
+  grid.appendChild(cell('', 'week-cat'));
+  GIORNI.forEach((g, i) => {
+    const cls = (i>=5) ? 'week-header weekend' : 'week-header';
+    const lbl = GIORNI_LABEL[i] + '<br><small>' + getDayKcalTarget(g) + ' kcal</small>';
+    grid.appendChild(cell(lbl, cls));
+  });
+  PASTI.forEach(p => {
+    grid.appendChild(cell(PASTI_LABEL[p], 'week-cat'));
+    GIORNI.forEach(g => {
+      const recipeId = state.plan[g][p];
+      const r = RECIPES[recipeId];
+      const today = getDateForGiorno(g);
+      const status = state.mealStatus[today]?.[p] || 'planned';
+      const el = document.createElement('div');
+      el.className = 'meal-cell ' + (status !== 'planned' ? status : '');
+      el.innerHTML = `
+        <div>
+          <div class="meal-name">${r ? r.nome : '—'}</div>
+          <div class="meal-kcal">${r ? r.kcal + ' kcal · P' + r.p + ' C' + r.c + ' F' + r.f : ''}</div>
+        </div>
+        ${status !== 'planned' ? '<span class="meal-badge ' + status + '">' + statusLabel(status) + '</span>' : ''}
+      `;
+      el.addEventListener('click', () => openMealModal(g, p, recipeId));
+      grid.appendChild(el);
+    });
+  });
+
+  // Mobile view
+  if (!mobileSelectedDay) {
+    const dow = (new Date().getDay()+6)%7;
+    mobileSelectedDay = GIORNI[dow];
+  }
+  const selector = document.getElementById('mobile-day-selector');
+  selector.innerHTML = GIORNI.map((g,i) => {
+    const active = g === mobileSelectedDay ? 'active' : '';
+    const weekend = i>=5 ? 'weekend' : '';
+    return `<button class="day-btn ${active} ${weekend}" onclick="selectMobileDay('${g}')">${GIORNI_SHORT[i]}</button>`;
+  }).join('');
+
+  const mealList = document.getElementById('mobile-meal-list');
+  const selG = mobileSelectedDay;
+  const dayIdx = GIORNI.indexOf(selG);
+  const dayKcal = getDayPlannedKcal(selG);
+  const dayMacros = getDayPlannedMacros(selG);
+  const dayTarget = getDayKcalTarget(selG);
+  mealList.innerHTML = `
+    <div class="mobile-day-header ${dayIdx>=5?'weekend':''}">
+      <div class="mobile-day-title">${GIORNI_LABEL[dayIdx]}</div>
+      <div class="mobile-day-stats">
+        <span>${dayKcal} / ${dayTarget} kcal</span>
+        <span>P ${dayMacros.p}g · C ${dayMacros.c}g · F ${dayMacros.f}g</span>
+      </div>
+    </div>
+  ` + PASTI.map(p => {
+    const rid = state.plan[selG][p];
+    const r = RECIPES[rid];
+    const today = getDateForGiorno(selG);
+    const status = state.mealStatus[today]?.[p] || 'planned';
+    const statusCls = status !== 'planned' ? status : '';
+    return `
+      <div class="mobile-meal-card ${statusCls}" onclick="openMealModal('${selG}','${p}','${rid}')">
+        <div class="mobile-meal-head">
+          <span class="mobile-meal-icon">${PASTI_EMOJI[p]}</span>
+          <span class="mobile-meal-time">${PASTI_LABEL[p]}</span>
+          ${status !== 'planned' ? '<span class="meal-badge ' + status + '">' + statusLabel(status) + '</span>' : ''}
+        </div>
+        <div class="mobile-meal-name">${r ? r.nome : '—'}</div>
+        <div class="mobile-meal-macros">
+          <span>${r?.kcal || 0} kcal</span>
+          <span>P ${r?.p || 0}g</span>
+          <span>C ${r?.c || 0}g</span>
+          <span>F ${r?.f || 0}g</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.selectMobileDay = function(g) {
+  mobileSelectedDay = g;
+  renderPiano();
+};
+
+function statusLabel(s) {
+  return s === 'done' ? '✓ Fatto' : s === 'skipped' ? '✗ Saltato' : s === 'swapped' ? '↔ Sostituito' : '';
+}
+
+function cell(html, cls) {
+  const div = document.createElement('div');
+  div.className = cls;
+  div.innerHTML = html;
+  return div;
+}
+
+function getDateForGiorno(giorno) {
+  // Return this week's date for that giorno (starting from monday of current week)
+  const today = new Date();
+  const dow = (today.getDay()+6)%7; // lunedi=0
+  const monday = new Date(today); monday.setDate(today.getDate() - dow);
+  const idx = GIORNI.indexOf(giorno);
+  const d = new Date(monday); d.setDate(monday.getDate() + idx);
+  return d.toISOString().slice(0,10);
+}
+
+function openMealModal(giorno, pasto, recipeId) {
+  const r = RECIPES[recipeId];
+  const dateKey = getDateForGiorno(giorno);
+  const curStatus = state.mealStatus[dateKey]?.[pasto] || 'planned';
+
+  const bg = document.getElementById('modal-bg');
+  const content = document.getElementById('modal-content');
+
+  let alternativesHtml = '';
+  if (curStatus !== 'done') {
+    const alts = findAlternatives(r, pasto);
+    if (alts.length) {
+      alternativesHtml = '<h4 style="margin-top:1rem">Alternative compatibili</h4>' +
+        '<p class="section-subtitle" style="margin-bottom:0.5rem">Ricette con macro simili. Clicca per sostituire.</p>' +
+        alts.map(a => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#f9fafb;border-radius:6px;margin-bottom:4px;">
+            <div>
+              <strong style="font-size:0.9rem">${a.nome}</strong>
+              <div style="font-size:0.75rem;color:#6b7280">${a.kcal} kcal · P${a.p} C${a.c} F${a.f}</div>
+            </div>
+            <button class="btn btn-sm" onclick="swapMeal('${giorno}','${pasto}','${a.id}')">Sostituisci</button>
+          </div>
+        `).join('');
+    }
+  }
+
+  content.innerHTML = `
+    <button class="close-btn" onclick="closeModal()">×</button>
+    <h3>${r.nome}</h3>
+    <div class="recipe-meta">
+      <span>${PASTI_LABEL[pasto]}</span>
+      <span>${GIORNI_LABEL[GIORNI.indexOf(giorno)]}</span>
+      <span>${r.tempo} min</span>
+    </div>
+    <div class="macros">
+      <div class="macro"><div class="m-label">Kcal</div><div class="m-val">${r.kcal}</div></div>
+      <div class="macro"><div class="m-label">Prot</div><div class="m-val">${r.p} g</div></div>
+      <div class="macro"><div class="m-label">Carb</div><div class="m-val">${r.c} g</div></div>
+      <div class="macro"><div class="m-label">Grassi</div><div class="m-val">${r.f} g</div></div>
+      <div class="macro"><div class="m-label">Fibre</div><div class="m-val">${r.fibre} g</div></div>
+    </div>
+    <h4 style="margin-top:1rem">Ingredienti</h4>
+    <ul class="ingredient-list">
+      ${r.ingredienti.map(i => `<li>• ${i.nome} — <strong>${i.qty} ${i.unit}</strong></li>`).join('')}
+    </ul>
+    <h4>Preparazione</h4>
+    <p style="font-size:0.9rem; color:#374151">${r.istruzioni}</p>
+    <h4 style="margin-top:1rem">Vedi ricette correlate</h4>
+    <div class="recipe-links">
+      ${recipeSearchLinks(r.nome).map(l => `<a href="${l.url}" target="_blank" rel="noopener" class="recipe-link">${l.icon} ${l.label}</a>`).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="markMeal('${giorno}','${pasto}','done')">✓ Segna fatto</button>
+      <button class="btn btn-ghost" onclick="markMeal('${giorno}','${pasto}','skipped')">✗ Salta pasto</button>
+      <button class="btn btn-ghost" onclick="markMeal('${giorno}','${pasto}','planned')">Reset stato</button>
+    </div>
+    ${alternativesHtml}
+  `;
+
+  bg.classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('show');
+}
+
+function markMeal(giorno, pasto, status) {
+  const dateKey = getDateForGiorno(giorno);
+  const label = status === 'done' ? 'Pasto segnato come fatto'
+              : status === 'skipped' ? 'Pasto segnato come saltato'
+              : 'Pasto riportato a pianificato';
+  snapshot(label);
+  if (!state.mealStatus[dateKey]) state.mealStatus[dateKey] = {};
+  if (status === 'planned') delete state.mealStatus[dateKey][pasto];
+  else state.mealStatus[dateKey][pasto] = status;
+  saveState();
+  closeModal();
+  renderPiano();
+  renderDashboard();
+  showToast(label, label);
+}
+
+function swapMeal(giorno, pasto, newId) {
+  const oldRecipe = RECIPES[state.plan[giorno][pasto]]?.nome || '';
+  const newRecipe = RECIPES[newId]?.nome || '';
+  const label = `Sostituito: ${oldRecipe} → ${newRecipe}`;
+  snapshot(label);
+  const dateKey = getDateForGiorno(giorno);
+  state.plan[giorno][pasto] = newId;
+  if (!state.mealStatus[dateKey]) state.mealStatus[dateKey] = {};
+  state.mealStatus[dateKey][pasto] = 'swapped';
+  saveState();
+  closeModal();
+  renderPiano();
+  renderDashboard();
+  // Regen shopping (no extra snapshot — already done above)
+  regenShoppingRaw();
+  showToast(label, label);
+}
+
+function findAlternatives(currentRecipe, pasto) {
+  const targetKcal = currentRecipe.kcal;
+  const targetP = currentRecipe.p;
+  return Object.entries(RECIPES)
+    .filter(([id, r]) => {
+      if (id === Object.keys(RECIPES).find(k => RECIPES[k] === currentRecipe)) return false;
+      if (r.cat !== currentRecipe.cat && !(pasto === 'pranzo' && r.cat === 'weekend') && !(pasto === 'cena' && r.cat === 'weekend')) return false;
+      return Math.abs(r.kcal - targetKcal) < 150 && Math.abs(r.p - targetP) < 15;
+    })
+    .map(([id, r]) => ({id, ...r}))
+    .slice(0, 4);
+}
+
+/* ============ RICETTE ============ */
+function renderRicette() {
+  const activeFilter = document.querySelector('#recipe-filters .filter-btn.active').dataset.filter;
+  const grid = document.getElementById('recipe-grid');
+  grid.innerHTML = '';
+  Object.entries(RECIPES).forEach(([id, r]) => {
+    if (activeFilter !== 'all' && r.cat !== activeFilter) return;
+    const card = document.createElement('div');
+    card.className = 'recipe-card';
+    card.innerHTML = `
+      <h4>${r.nome}</h4>
+      <div class="recipe-meta">
+        <span>${r.cat}</span>
+        <span>${r.tempo} min</span>
+      </div>
+      <div class="macros">
+        <div class="macro"><div class="m-label">Kcal</div><div class="m-val">${r.kcal}</div></div>
+        <div class="macro"><div class="m-label">P</div><div class="m-val">${r.p}</div></div>
+        <div class="macro"><div class="m-label">C</div><div class="m-val">${r.c}</div></div>
+        <div class="macro"><div class="m-label">F</div><div class="m-val">${r.f}</div></div>
+      </div>
+    `;
+    card.addEventListener('click', () => openRecipeModal(id));
+    grid.appendChild(card);
+  });
+}
+
+function openRecipeModal(id) {
+  const r = RECIPES[id];
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <button class="close-btn" onclick="closeModal()">×</button>
+    <h3>${r.nome}</h3>
+    <div class="recipe-meta">
+      <span>${r.cat}</span>
+      <span>${r.tempo} min</span>
+      <span>Fibre ${r.fibre}g</span>
+    </div>
+    <div class="macros">
+      <div class="macro"><div class="m-label">Kcal</div><div class="m-val">${r.kcal}</div></div>
+      <div class="macro"><div class="m-label">Prot</div><div class="m-val">${r.p} g</div></div>
+      <div class="macro"><div class="m-label">Carb</div><div class="m-val">${r.c} g</div></div>
+      <div class="macro"><div class="m-label">Grassi</div><div class="m-val">${r.f} g</div></div>
+    </div>
+    <h4 style="margin-top:1rem">Ingredienti (1 porzione)</h4>
+    <ul class="ingredient-list">
+      ${r.ingredienti.map(i => `<li>• ${i.nome} — <strong>${i.qty} ${i.unit}</strong></li>`).join('')}
+    </ul>
+    <h4>Preparazione</h4>
+    <p style="font-size:0.9rem; color:#374151">${r.istruzioni}</p>
+    <h4 style="margin-top:1rem">Vedi ricette correlate</h4>
+    <div class="recipe-links">
+      ${recipeSearchLinks(r.nome).map(l => `<a href="${l.url}" target="_blank" rel="noopener" class="recipe-link">${l.icon} ${l.label}</a>`).join('')}
+    </div>
+  `;
+  document.getElementById('modal-bg').classList.add('show');
+}
+
+document.querySelectorAll('#recipe-filters .filter-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#recipe-filters .filter-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    renderRicette();
+  });
+});
+
+/* ============ TRACKING ============ */
+function renderTracking() {
+  const today = todayISO();
+  const dow = (new Date().getDay()+6)%7;
+  const giornoKey = GIORNI[dow];
+  const target = getDayKcalTarget(giornoKey);
+  document.getElementById('tracking-date-title').textContent = `Oggi — ${GIORNI_LABEL[dow]} ${today.slice(8)}/${today.slice(5,7)}`;
+
+  const logged = state.kcal[today];
+  if (logged) {
+    document.getElementById('tracking-kcal').value = logged.value;
+    document.getElementById('tracking-note').value = logged.note || '';
+  } else {
+    document.getElementById('tracking-kcal').value = '';
+    document.getElementById('tracking-note').value = '';
+  }
+
+  const plannedKcal = getDayPlannedKcal(giornoKey);
+  const plannedMacros = getDayPlannedMacros(giornoKey);
+  const actual = logged?.value || 0;
+  const pct = actual ? Math.min(100, (actual/target)*100) : 0;
+  const pctClass = actual === 0 ? 'under' : actual > target*1.08 ? 'over' : actual < target*0.85 ? 'under' : 'ok';
+
+  document.getElementById('tracking-progress').innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+      <span><strong>${actual}</strong> / ${target} kcal target</span>
+      <span style="color:#6b7280">Pianificato: ${plannedKcal} kcal</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill ${pctClass}" style="width:${pct}%"></div></div>
+    <div style="margin-top:1rem;font-size:0.8rem;color:#6b7280">
+      Macro pianificate oggi: Proteine ${plannedMacros.p}g · Carbo ${plannedMacros.c}g · Grassi ${plannedMacros.f}g · Fibre ${plannedMacros.fibre}g
+    </div>
+  `;
+
+  // Today meals
+  const todayMeals = document.getElementById('today-meals');
+  todayMeals.innerHTML = PASTI.map(p => {
+    const rid = state.plan[giornoKey][p];
+    const r = RECIPES[rid];
+    const status = state.mealStatus[today]?.[p] || 'planned';
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #f3f4f6;">
+        <div>
+          <strong>${PASTI_LABEL[p]}</strong> — ${r?.nome || '—'}
+          <div style="font-size:0.75rem;color:#6b7280">${r?.kcal || 0} kcal</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm ${status==='done'?'':'btn-ghost'}" onclick="quickMark('${giornoKey}','${p}','done')">✓</button>
+          <button class="btn btn-sm ${status==='skipped'?'btn-danger':'btn-ghost'}" onclick="quickMark('${giornoKey}','${p}','skipped')">✗</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // History
+  const hist = document.getElementById('kcal-history');
+  const entries = [];
+  for (let i=13;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const iso = d.toISOString().slice(0,10);
+    const dow2 = (d.getDay()+6)%7;
+    const g = GIORNI[dow2];
+    const t = getDayKcalTarget(g);
+    const e = state.kcal[iso];
+    entries.push(`
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:0.85rem;">
+        <span>${iso.slice(5)} · ${GIORNI_LABEL[dow2]}</span>
+        <span>${e ? '<strong>'+e.value+'</strong>' : '—'} / ${t} kcal ${e?.note ? '<span style="color:#6b7280">· '+e.note+'</span>' : ''}</span>
+      </div>
+    `);
+  }
+  hist.innerHTML = entries.join('');
+}
+
+function quickMark(giorno, pasto, status) {
+  markMeal(giorno, pasto, status);
+  renderTracking();
+}
+
+document.getElementById('btn-save-kcal').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('tracking-kcal').value);
+  const n = document.getElementById('tracking-note').value;
+  if (isNaN(v)) return alert('Inserisci un valore numerico');
+  const label = `Kcal oggi salvate: ${v}`;
+  snapshot(label);
+  state.kcal[todayISO()] = {value: v, note: n};
+  saveState();
+  renderTracking();
+  renderDashboard();
+  showToast(label, label);
+});
+
+/* ============ SPESA ============ */
+function aggregateShopping() {
+  const agg = {};
+  GIORNI.forEach(g => {
+    PASTI.forEach(p => {
+      const r = RECIPES[state.plan[g][p]];
+      if (!r) return;
+      r.ingredienti.forEach(i => {
+        const key = (i.shop || 'altro') + '::' + i.nome + '::' + i.unit;
+        if (!agg[key]) agg[key] = { nome: i.nome, unit: i.unit, shop: i.shop || 'altro', qty: 0 };
+        agg[key].qty += i.qty;
+      });
+    });
+  });
+  return agg;
+}
+
+function renderSpesa() {
+  const agg = aggregateShopping();
+  const grouped = {};
+  Object.entries(agg).forEach(([k, it]) => {
+    if (!grouped[it.shop]) grouped[it.shop] = [];
+    grouped[it.shop].push({key: k, ...it});
+  });
+
+  const order = ['verdura','frutta','proteine','latticini','cereali','dispensa','altro'];
+  const labels = { verdura:'Verdura & ortaggi', frutta:'Frutta', proteine:'Proteine (carne/pesce/uova)', latticini:'Latticini', cereali:'Cereali & pane', dispensa:'Dispensa', altro:'Altro' };
+
+  const container = document.getElementById('shopping-list');
+  container.innerHTML = '';
+  order.forEach(cat => {
+    if (!grouped[cat]) return;
+    const group = document.createElement('div');
+    group.className = 'shopping-group';
+    group.innerHTML = `<h4>${labels[cat]}</h4>` + grouped[cat].map(it => {
+      const checked = state.shopping[it.key]?.checked || false;
+      const qtyDisplay = it.qty >= 1000 && it.unit === 'g' ? (it.qty/1000).toFixed(2) + ' kg' : Math.round(it.qty) + ' ' + it.unit;
+      return `
+        <div class="shopping-item ${checked?'checked':''}">
+          <input type="checkbox" ${checked?'checked':''} onchange="toggleShop('${it.key}', this.checked)">
+          <span>${it.nome}</span>
+          <span class="qty">${qtyDisplay}</span>
+        </div>
+      `;
+    }).join('');
+    container.appendChild(group);
+  });
+}
+
+window.toggleShop = function(key, checked) {
+  if (!state.shopping[key]) state.shopping[key] = {};
+  state.shopping[key].checked = checked;
+  saveState();
+  document.querySelectorAll('.shopping-item').forEach(el => {
+    const cb = el.querySelector('input[type=checkbox]');
+    if (cb && cb.getAttribute('onchange').includes(key)) {
+      el.classList.toggle('checked', checked);
+    }
+  });
+};
+
+function regenShoppingRaw() {
+  state.shopping = {};
+  saveState();
+  if (document.getElementById('spesa').classList.contains('active')) renderSpesa();
+}
+function regenShopping() {
+  const label = 'Lista spesa rigenerata';
+  snapshot(label);
+  regenShoppingRaw();
+  showToast(label, label);
+}
+
+document.getElementById('btn-clear-shopping').addEventListener('click', () => {
+  const label = 'Spunte spesa azzerate';
+  snapshot(label);
+  Object.keys(state.shopping).forEach(k => state.shopping[k].checked = false);
+  saveState();
+  renderSpesa();
+  showToast(label, label);
+});
+document.getElementById('btn-regen-shopping-2').addEventListener('click', regenShopping);
+document.getElementById('btn-regen-shopping').addEventListener('click', regenShopping);
+
+/* ============ PROGRESSI ============ */
+function renderProgressi() {
+  document.getElementById('w-date').value = todayISO();
+  document.getElementById('m-date').value = todayISO();
+
+  const wList = document.getElementById('weight-list');
+  const wsorted = state.weights.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  wList.innerHTML = wsorted.map((w,i) => `
+    <div class="weight-entry">
+      <span>${w.date}</span><strong>${w.peso.toFixed(1)} kg</strong>
+      <button class="del" onclick="delWeight(${state.weights.findIndex(x=>x.date===w.date && x.peso===w.peso)})">Elimina</button>
+    </div>
+  `).join('');
+
+  const mList = document.getElementById('measure-list');
+  const msorted = state.measures.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  mList.innerHTML = msorted.map((m) => `
+    <div class="weight-entry">
+      <span>${m.date}</span>
+      <span>Vita <strong>${m.vita}</strong></span>
+      <span>Fianchi <strong>${m.fianchi}</strong></span>
+      <span style="color:#6b7280">WHR ${(m.vita/m.fianchi).toFixed(2)}</span>
+      <button class="del" onclick="delMeasure(${state.measures.findIndex(x=>x.date===m.date && x.vita===m.vita)})">Elimina</button>
+    </div>
+  `).join('');
+
+  // Progress chart
+  const wdata = state.weights.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if (chartProgress) chartProgress.destroy();
+  chartProgress = new Chart(document.getElementById('chart-progress'), {
+    type: 'line',
+    data: {
+      labels: wdata.map(w => w.date),
+      datasets: [
+        { label: 'Peso (kg)', data: wdata.map(w => w.peso), borderColor: '#2d5a3d', backgroundColor: 'rgba(45,90,61,0.15)', tension: 0.2, fill: true, pointRadius: 5 },
+        { label: 'Traiettoria ideale', data: idealTrajectory(wdata), borderColor: '#d4a556', borderDash:[5,5], pointRadius: 0, fill: false },
+        { label: 'Target 64', data: wdata.map(()=>PATIENT.pesoTarget), borderColor: '#dc2626', borderDash:[3,3], pointRadius: 0, fill: false }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { suggestedMin: 62, suggestedMax: 72 } } }
+  });
+}
+
+function idealTrajectory(wdata) {
+  if (!wdata.length) return [];
+  const start = new Date(PATIENT.dataInizio);
+  const end = new Date(PATIENT.dataTarget);
+  const totalDays = daysBetween(PATIENT.dataInizio, PATIENT.dataTarget);
+  return wdata.map(w => {
+    const d = daysBetween(PATIENT.dataInizio, w.date);
+    const pct = Math.min(1, Math.max(0, d/totalDays));
+    return (PATIENT.pesoIniziale - (PATIENT.pesoIniziale - PATIENT.pesoTarget)*pct).toFixed(1);
+  });
+}
+
+window.delWeight = function(idx) {
+  if (!confirm('Eliminare questa pesata?')) return;
+  const label = 'Pesata eliminata';
+  snapshot(label);
+  state.weights.splice(idx,1);
+  saveState(); renderProgressi(); renderDashboard();
+  showToast(label, label);
+};
+window.delMeasure = function(idx) {
+  if (!confirm('Eliminare questa misurazione?')) return;
+  const label = 'Misurazione eliminata';
+  snapshot(label);
+  state.measures.splice(idx,1);
+  saveState(); renderProgressi();
+  showToast(label, label);
+};
+
+document.getElementById('btn-add-weight').addEventListener('click', () => {
+  const d = document.getElementById('w-date').value;
+  const v = parseFloat(document.getElementById('w-value').value);
+  if (!d || isNaN(v)) return alert('Compila data e peso');
+  const label = `Pesata aggiunta: ${v.toFixed(1)} kg`;
+  snapshot(label);
+  state.weights.push({date: d, peso: v});
+  saveState(); renderProgressi(); renderDashboard();
+  document.getElementById('w-value').value = '';
+  showToast(label, label);
+});
+
+document.getElementById('btn-add-measure').addEventListener('click', () => {
+  const d = document.getElementById('m-date').value;
+  const v = parseFloat(document.getElementById('m-waist').value);
+  const f = parseFloat(document.getElementById('m-hip').value);
+  if (!d || isNaN(v) || isNaN(f)) return alert('Compila data, vita e fianchi');
+  const label = 'Misure aggiunte';
+  snapshot(label);
+  state.measures.push({date: d, vita: v, fianchi: f});
+  saveState(); renderProgressi();
+  document.getElementById('m-waist').value = ''; document.getElementById('m-hip').value = '';
+  showToast(label, label);
+});
+
+/* ============ ALLENAMENTO ============ */
+function renderAllenamento() {
+  const wk = document.getElementById('workout-week');
+  wk.innerHTML = `<div class="workout-schedule">` +
+    WORKOUTS.weekSchedule.map(d => `
+      <div class="workout-day" style="border-left-color: ${d.colore}">
+        <div class="workout-day-name">${d.giorno}</div>
+        <div class="workout-day-type">${d.tipo}</div>
+        <div class="workout-day-dur">${d.durata}</div>
+      </div>
+    `).join('') + `</div>`;
+
+  const progs = document.getElementById('workout-programs');
+  progs.innerHTML = [WORKOUTS.programA, WORKOUTS.programB, WORKOUTS.programC].map(prog => `
+    <div class="card workout-program">
+      <h3>${prog.nome}</h3>
+      <p class="section-subtitle" style="margin-bottom:1rem">${prog.sottotitolo}</p>
+      ${prog.sezioni.map(sez => `
+        <div class="workout-section">
+          <h4 class="workout-section-title">${sez.titolo}</h4>
+          ${sez.esercizi.map(ex => `
+            <div class="workout-exercise">
+              <div class="ex-head">
+                <span class="ex-nome">${ex.nome}</span>
+                <span class="ex-setreps">${ex.set} × ${ex.reps}</span>
+              </div>
+              <div class="ex-note">${ex.note}</div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+/* ============ RECIPE SEARCH LINKS ============ */
+function recipeSearchLinks(recipeName) {
+  const q = encodeURIComponent(recipeName);
+  return [
+    { label: 'Cucchiaio d\'Argento', url: `https://www.cucchiaio.it/ricerca/?q=${q}`, icon: '🥄' },
+    { label: 'Giallo Zafferano', url: `https://www.giallozafferano.it/ricerca-ricette/${q.replace(/%20/g,'+')}/`, icon: '🍋' },
+    { label: 'Gambero Rosso', url: `https://www.gamberorosso.it/?s=${q}`, icon: '🦐' },
+    { label: 'Bimby (Cookidoo)', url: `https://cookidoo.it/search/it-IT?context=recipes&query=${q}`, icon: '🍲' }
+  ];
+}
+
+/* ============ EXPORT / IMPORT ============ */
+document.getElementById('btn-export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'piano-sonia-backup-' + todayISO() + '.json';
+  a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+document.getElementById('import-file').addEventListener('change', (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = (ev) => {
+    try { state = JSON.parse(ev.target.result); saveState(); location.reload(); }
+    catch(e) { alert('File non valido'); }
+  };
+  rd.readAsText(f);
+});
+document.getElementById('btn-reset-all').addEventListener('click', () => {
+  if (!confirm('Sicuro? Eliminerai TUTTI i dati salvati.')) return;
+  localStorage.removeItem(STORAGE_KEY); location.reload();
+});
+
+/* ============ PIANO: randomize / reset ============ */
+document.getElementById('btn-randomize').addEventListener('click', () => {
+  if (!confirm('Randomizzare il piano settimanale con alternative compatibili?')) return;
+  const label = 'Piano randomizzato';
+  snapshot(label);
+  const byCat = { colazione: [], pranzo: [], spuntino: [], cena: [], weekend: [] };
+  Object.entries(RECIPES).forEach(([id, r]) => byCat[r.cat].push(id));
+  GIORNI.forEach((g, i) => {
+    const weekend = i >= 5;
+    state.plan[g].colazione = pick(byCat.colazione);
+    state.plan[g].pranzo = weekend ? pick(byCat.weekend.filter(id => !/w2|w4/.test(id))) : pick(byCat.pranzo);
+    state.plan[g].spuntino = pick(byCat.spuntino);
+    state.plan[g].cena = weekend ? (i===5 ? 'w2' : 'w4') : pick(byCat.cena);
+  });
+  saveState();
+  renderPiano();
+  state.shopping = {}; saveState();
+  if (document.getElementById('spesa').classList.contains('active')) renderSpesa();
+  showToast(label, label);
+});
+function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+document.getElementById('btn-reset-week').addEventListener('click', () => {
+  if (!confirm('Ripristinare il piano settimanale originale? Gli status dei pasti resteranno.')) return;
+  const label = 'Piano ripristinato ai valori di default';
+  snapshot(label);
+  state.plan = JSON.parse(JSON.stringify(DEFAULT_PLAN));
+  saveState();
+  renderPiano();
+  state.shopping = {}; saveState();
+  if (document.getElementById('spesa').classList.contains('active')) renderSpesa();
+  showToast(label, label);
+});
+
+/* ============ INIT ============ */
+document.getElementById('modal-bg').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-bg') closeModal();
+});
+document.getElementById('chart-modal-bg').addEventListener('click', (e) => {
+  if (e.target.id === 'chart-modal-bg') closeChartModal();
+});
+
+// Keyboard shortcut: Cmd/Ctrl + Z = undo
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea') {
+      e.preventDefault();
+      undoLast();
+    }
+  }
+});
+
+loadState();
+loadHistory();
+renderDashboard();
+// Also render piano in background so it's ready
+renderPiano();
+
+// Service Worker registration (PWA — add to home screen + offline cache)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.log('SW registration failed:', err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>
