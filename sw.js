@@ -1,7 +1,7 @@
 // Service Worker — Piano Nutrizionale
 // Cache-first strategy per funzionare offline dopo la prima visita
 
-const CACHE_NAME = 'piano-nutrizionale-v1';
+const CACHE_NAME = 'piano-nutrizionale-v2';
 const ASSETS = [
   './',
   './index.html',
